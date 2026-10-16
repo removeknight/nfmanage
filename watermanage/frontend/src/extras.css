@@ -1,0 +1,36 @@
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+}
+.checkbox-field input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #317ed1;
+}
+.product-visual.photo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f5f7f9;
+}
+.product-visual.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.product-visual.photo.small {
+  width: 38px;
+  height: 44px;
+}
+.product-visual.photo.tiny {
+  width: 30px;
+  height: 32px;
+}
+.product-visual.photo.normal {
+  width: 54px;
+  height: 64px;
+}

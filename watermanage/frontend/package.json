@@ -1,0 +1,23 @@
+{
+  "name": "watermanage-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\""
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "^0.468.0",
+    "pinyin-pro": "3.29.5",
+    "react": "latest",
+    "react-dom": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}

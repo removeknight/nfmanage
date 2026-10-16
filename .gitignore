@@ -172,3 +172,11 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+.env
+watermanage/.env
+watermanage/**/__pycache__/
+watermanage/**/*.py[cod]
+watermanage/frontend/node_modules/
+watermanage/frontend/dist/
+watermanage/backups/
+*.log
