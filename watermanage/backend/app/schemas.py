@@ -52,7 +52,7 @@ class StatusIn(BaseModel):
 
 
 class MiniBindIn(BaseModel):
-    code: str
+    code: str | None = None
     name: str = Field(min_length=1, max_length=120)
     phone: str = Field(default="", max_length=40)
     address: str = Field(default="", max_length=300)

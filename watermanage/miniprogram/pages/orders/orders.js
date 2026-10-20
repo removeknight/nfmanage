@@ -26,7 +26,10 @@ Page({
   },
   formatDate(value) {
     if (!value) return ''
-    const date = new Date(value.replace(' ', 'T'))
+    // Database timestamps are UTC without a suffix; parse explicitly as UTC,
+    // then display in the phone's local timezone.
+    const normalized = value.replace(' ', 'T')
+    const date = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(normalized) ? normalized : `${normalized}Z`)
     const pad = n => String(n).padStart(2, '0')
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
   },

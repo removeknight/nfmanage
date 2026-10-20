@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 import hashlib
 import hmac
@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
@@ -20,7 +20,7 @@ from ..services.audit import write_log
 from ..settings import settings
 
 router = APIRouter(prefix="/api/mini", tags=["微信小程序"])
-ORDER_CONFIRMATION_TIMEOUT = timedelta(hours=2)
+ORDER_CONFIRMATION_TIMEOUT_SQL = text("INTERVAL '2 hours'")
 
 
 def _wechat_openid(code: str) -> str:
@@ -36,6 +36,13 @@ def _wechat_openid(code: str) -> str:
     if not data.get("openid"):
         raise HTTPException(401, "微信登录凭据无效，请重新登录")
     return data["openid"]
+
+
+def _mock_openid(phone: str) -> str:
+    if not phone.strip():
+        raise HTTPException(400, "测试绑定需要联系电话")
+    # Stable per-phone identity so repeated test bindings update the same customer.
+    return "test_" + hashlib.sha256(phone.strip().encode()).hexdigest()
 
 
 def _customer(authorization: str | None, db: Session) -> Customer:
@@ -85,7 +92,9 @@ def _order_info(order: MiniOrder):
 
 
 def _expire_pending_orders(db: Session):
-    cutoff = datetime.now() - ORDER_CONFIRMATION_TIMEOUT
+    # Persisted timestamps use the database clock (PostgreSQL is UTC on the
+    # server); use that same clock for comparisons to avoid host timezone drift.
+    cutoff = func.now() - ORDER_CONFIRMATION_TIMEOUT_SQL
     orders = db.scalars(select(MiniOrder).where(MiniOrder.status == "待商家确认", MiniOrder.created_at < cutoff)
                         .options(selectinload(MiniOrder.items)).with_for_update()).all()
     for order in orders:
@@ -102,7 +111,15 @@ def _expire_pending_orders(db: Session):
 
 @router.post("/bind")
 def bind(data: MiniBindIn, db: Session = Depends(get_db)):
-    openid = _wechat_openid(data.code)
+    auth_mode = settings.mini_auth_mode.strip().lower()
+    if auth_mode == "mock":
+        openid = _mock_openid(data.phone)
+    elif auth_mode == "wechat":
+        if not data.code:
+            raise HTTPException(400, "缺少微信登录凭据")
+        openid = _wechat_openid(data.code)
+    else:
+        raise HTTPException(503, "小程序登录模式配置无效")
     customer = db.scalar(select(Customer).where(Customer.wechat_openid == openid).with_for_update())
     if customer is None:
         customer = Customer(name=data.name, phone=data.phone, address=data.address, kind="个人", wechat_openid=openid)
@@ -112,7 +129,7 @@ def bind(data: MiniBindIn, db: Session = Depends(get_db)):
     token = secrets.token_urlsafe(32)
     customer.mini_token_hash = hashlib.sha256(token.encode()).hexdigest()
     db.commit()
-    return {"token": token, "customer": {"id": customer.id, "name": customer.name,
+    return {"token": token, "auth_mode": auth_mode, "customer": {"id": customer.id, "name": customer.name,
             "phone": customer.phone, "address": customer.address}}
 
 
@@ -251,7 +268,7 @@ def confirm_order(order_id: int, authorization: str | None = Header(default=None
             f"库存 {product.stock} 件；预留 {product.reserved_stock} 件",
             f"确认商城订单 {order.order_no}，出库 {item.quantity} 件")
     order.status = "已确认"
-    order.confirmed_at = datetime.now()
+    order.confirmed_at = db.scalar(select(func.now()))
     db.commit()
     return {"status": order.status, "order_no": order.order_no}
 

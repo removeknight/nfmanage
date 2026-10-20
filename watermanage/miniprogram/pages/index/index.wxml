@@ -17,13 +17,12 @@
     <view wx:for="{{item.brands}}" wx:key="brand" class="brand-section">
       <view class="brand-heading">{{item.brand}}</view>
       <view wx:for="{{item.products}}" wx:key="id" class="product-card">
-        <view class="product-art" style="background: linear-gradient(145deg, {{item.color}}, {{item.color}}99)">
-          <view class="art-cap"></view><view class="art-label"><text class="art-brand">{{item.brand}}</text><text class="art-size">{{item.capacity}}</text></view>
-          <text class="art-mark">水</text>
+        <view class="product-visual">
+          <text class="water-glyph">水</text><text class="capacity-label">{{item.capacity}}</text>
         </view>
         <view class="product-info">
           <view class="product-name">{{item.name}}</view><view class="product-spec">{{item.capacity}} · {{item.package_type}}</view>
-          <view class="product-bottom"><view><text class="price-symbol">¥</text><text class="price">{{item.sell_price}}</text><text class="unit"> / {{item.package_type}}</text></view>
+          <view class="product-bottom"><view class="product-price"><text class="price-symbol">¥</text><text class="price">{{item.sell_price}}</text><text class="unit"> / {{item.package_type}}</text></view>
             <view wx:if="{{item.available}}" class="stepper"><button class="step-btn" data-id="{{item.id}}" data-delta="-1" bindtap="changeQuantity">−</button><text class="quantity">{{cart[item.id] || 0}}</text><button class="step-btn plus" data-id="{{item.id}}" data-delta="1" bindtap="changeQuantity">＋</button></view>
             <view wx:else class="sold-out">暂时缺货</view>
           </view>
@@ -34,17 +33,20 @@
   </view>
   <view class="bottom-space"></view>
 
-  <view wx:if="{{cartCount > 0}}" class="cart-bar"><view><text class="cart-count">{{cartCount}}</text><text class="cart-label">件商品</text><text class="cart-total">¥{{cartTotal}}</text></view><button class="checkout-btn" bindtap="openCheckout">去结算</button></view>
+  <view wx:if="{{cartCount > 0}}" class="cart-bar"><view class="cart-summary"><view><text class="cart-count">{{cartCount}}</text><text class="cart-label">件商品</text></view><text class="cart-total">¥{{cartTotal}}</text></view><button class="checkout-btn" bindtap="openCheckout">去结算</button></view>
 
-  <view wx:if="{{showBind}}" class="modal-mask"><view class="modal-card"><view class="modal-title">欢迎来到清泉水站</view><view class="modal-copy">绑定微信账号后即可下单和查看订单</view>
+  <view wx:if="{{showBind}}" class="modal-mask"><view class="modal-card"><view class="modal-title">欢迎来到清泉水站</view><view class="modal-copy">{{bindHint}}</view>
     <input class="field" placeholder="怎么称呼您" data-field="bindName" bindinput="updateField" />
     <input class="field" placeholder="联系电话，方便配送联系" type="number" data-field="bindPhone" bindinput="updateField" />
     <input class="field" placeholder="常用收货地址（选填）" data-field="bindAddress" bindinput="updateField" />
-    <button class="primary-btn" bindtap="bindAccount">微信快捷绑定</button></view></view>
+    <button class="primary-btn" bindtap="bindAccount">{{bindButtonText}}</button></view></view>
 
-  <view wx:if="{{showCheckout}}" class="modal-mask"><view class="modal-card checkout-modal"><view class="modal-title">确认订单</view><view class="checkout-summary">{{cartCount}} 件商品 · <text class="checkout-total">¥{{cartTotal}}</text></view>
+  <view wx:if="{{showCheckout}}" class="modal-mask"><view class="modal-card checkout-modal"><view class="modal-title">确认订单</view><view class="checkout-summary">{{checkoutLines.length}} 种商品 · {{cartCount}} 件 · <text class="checkout-total">¥{{cartTotal}}</text></view>
+    <scroll-view class="checkout-items" scroll-y>
+      <view wx:for="{{checkoutLines}}" wx:key="id" class="checkout-item"><view class="checkout-item-main"><view class="checkout-item-name">{{item.name}}</view><view class="checkout-item-spec">{{item.brand}} · {{item.capacity}} · ×{{item.quantity}}</view></view><text class="checkout-item-total">¥{{item.subtotal}}</text></view>
+    </scroll-view>
     <textarea class="field address-field" placeholder="请填写收货地址" data-field="checkoutAddress" bindinput="updateField" value="{{checkoutAddress}}" />
-    <textarea class="field note-field" placeholder="备注（选填）" data-field="orderNote" bindinput="updateField" value="{{orderNote}}" />
+    <input class="field note-field" placeholder="备注（选填）" data-field="orderNote" bindinput="updateField" value="{{orderNote}}" />
     <view class="checkout-actions"><button class="secondary-btn" bindtap="cancelCheckout">再看看</button><button class="primary-btn" bindtap="placeOrder">提交订单</button></view>
   </view></view>
 </view>

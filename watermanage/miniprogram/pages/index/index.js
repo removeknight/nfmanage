@@ -4,13 +4,18 @@ Page({
   data: {
     products: [], grouped: [], categories: [], activeCategory: '全部',
     cart: {}, cartCount: 0, cartTotal: '0.00', loading: false,
+    checkoutLines: [],
     customer: null, showBind: false, bindName: '', bindPhone: '', bindAddress: '',
+    bindButtonText: '微信快捷绑定', bindHint: '绑定微信账号后即可下单和查看订单',
     checkoutAddress: '', orderNote: '', showCheckout: false,
   },
 
   onShow() {
     const customer = app.globalData.customer
-    this.setData({ customer, showBind: !customer })
+    const isMockAuth = app.globalData.miniAuthMode === 'mock'
+    this.setData({ customer, showBind: !customer,
+      bindButtonText: isMockAuth ? '测试绑定' : '微信快捷绑定',
+      bindHint: isMockAuth ? '测试模式：不会调用微信登录，可直接绑定测试账号' : '绑定微信账号后即可下单和查看订单' })
     this.loadProducts()
   },
 
@@ -69,9 +74,13 @@ Page({
     if (!this.data.bindPhone.trim()) return wx.showToast({ title: '请填写联系电话，方便配送联系', icon: 'none' })
     wx.showLoading({ title: '正在绑定' })
     try {
-      const login = await new Promise((resolve, reject) => wx.login({ success: resolve, fail: reject }))
+      let code = ''
+      if (app.globalData.miniAuthMode !== 'mock') {
+        const login = await new Promise((resolve, reject) => wx.login({ success: resolve, fail: reject }))
+        code = login.code
+      }
       const result = await this.request('/api/mini/bind', { method: 'POST', data: {
-        code: login.code, name: this.data.bindName.trim(), phone: this.data.bindPhone.trim(), address: this.data.bindAddress.trim(),
+        code, name: this.data.bindName.trim(), phone: this.data.bindPhone.trim(), address: this.data.bindAddress.trim(),
       } })
       app.globalData.miniToken = result.token
       app.globalData.customer = result.customer
@@ -93,14 +102,25 @@ Page({
     if (next > product.stock) return wx.showToast({ title: `可售库存 ${product.stock} 件`, icon: 'none' })
     if (next > 0) cart[id] = next
     else delete cart[id]
-    const cartCount = Object.values(cart).reduce((a, b) => a + b, 0)
-    const cartTotal = Object.entries(cart).reduce((sum, [pid, qty]) => sum + this.data.products.find(p => String(p.id) === pid).sell_price * qty, 0)
-    this.setData({ cart, cartCount, cartTotal: cartTotal.toFixed(2) })
+    this.updateCart(cart)
+  },
+
+  updateCart(cart) {
+    const checkoutLines = Object.entries(cart).map(([id, quantity]) => {
+      const product = this.data.products.find(p => String(p.id) === id)
+      if (!product) return null
+      const subtotal = Number(product.sell_price) * quantity
+      return { ...product, quantity, subtotal: subtotal.toFixed(2) }
+    }).filter(Boolean)
+    const cartCount = checkoutLines.reduce((sum, line) => sum + line.quantity, 0)
+    const cartTotal = checkoutLines.reduce((sum, line) => sum + Number(line.subtotal), 0)
+    this.setData({ cart, checkoutLines, cartCount, cartTotal: cartTotal.toFixed(2) })
   },
 
   openCheckout() {
     if (!this.data.cartCount) return
-    this.setData({ showCheckout: true, checkoutAddress: this.data.checkoutAddress || (this.data.customer && this.data.customer.address) || '' })
+    this.setData({ showCheckout: true, checkoutLines: this.data.checkoutLines,
+      checkoutAddress: this.data.checkoutAddress || (this.data.customer && this.data.customer.address) || '' })
   },
 
   cancelCheckout() { this.setData({ showCheckout: false }) },
@@ -114,7 +134,7 @@ Page({
       const customer = { ...app.globalData.customer, address: this.data.checkoutAddress.trim() }
       app.globalData.customer = customer
       wx.setStorageSync('miniCustomer', customer)
-      this.setData({ cart: {}, cartCount: 0, cartTotal: '0.00', showCheckout: false, orderNote: '' })
+      this.setData({ cart: {}, checkoutLines: [], cartCount: 0, cartTotal: '0.00', showCheckout: false, orderNote: '' })
       wx.showModal({ title: '订单已提交', content: `订单号 ${order.order_no}\n金额 ¥${Number(order.total).toFixed(2)}\n待商家确认，确认后安排配送。`, showCancel: false })
       this.loadProducts()
     } catch (error) { wx.showToast({ title: error.message, icon: 'none' }); this.loadProducts() }
