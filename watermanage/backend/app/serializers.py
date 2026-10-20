@@ -1,4 +1,5 @@
 from .models import Customer, Delivery, Product, Transaction
+from .services.coupons import iso_utc
 
 
 def product_info(product: Product | None):
@@ -23,6 +24,12 @@ def transaction_info(row: Transaction):
     return {
         "id": row.id,
         "kind": row.kind,
+        "source": row.source,
+        "source_label": "小程序" if row.source == "mini" else "电脑订单",
+        "mini_order_id": row.mini_order_id,
+        "delivery_id": row.delivery_id,
+        "fulfillment_label": "送货上门" if row.delivery_id else "到店提货" if row.source == "mini" else "无需配送",
+        "voided_at": row.voided_at,
         "product_id": row.product_id,
         "customer_id": row.customer_id,
         "quantity": row.quantity,
@@ -31,15 +38,18 @@ def transaction_info(row: Transaction):
         "total": row.total,
         "note": row.note,
         "operator": row.operator,
-        "created_at": row.created_at,
+        "created_at": iso_utc(row.created_at),
         "product": product_info(row.product),
-        "customer": {"id": row.customer.id, "name": row.customer.name, "kind": row.customer.kind} if row.customer else None,
+        "customer": {"id": row.customer.id, "name": row.customer.name, "kind": row.customer.kind, "source": row.customer.source, "phone": row.customer.phone, "address": row.customer.address} if row.customer else None,
     }
 
 
 def delivery_info(row: Delivery):
     return {
         "id": row.id,
+        "source": "mini" if row.mini_order_id else "offline",
+        "source_label": "小程序" if row.mini_order_id else "电脑订单",
+        "mini_order_id": row.mini_order_id,
         "customer_id": row.customer_id,
         "product_id": row.product_id,
         "quantity": row.quantity,

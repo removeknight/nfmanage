@@ -1,4 +1,5 @@
 import { Plus, Search } from "lucide-react";
+import { useState } from "react";
 import { matchesSearch } from "../../utils/search";
 
 export default function CustomerPage({
@@ -7,7 +8,8 @@ export default function CustomerPage({
   setQuery,
   openModal,
 }) {
-  const matches = customers.filter((customer) =>
+  const [source, setSource] = useState("");
+  const matches = customers.filter((customer) => (!source || customer.source === source) &&
     matchesSearch(
       `${customer.name} ${customer.phone} ${customer.kind} ${customer.address}`,
       query,
@@ -35,6 +37,7 @@ export default function CustomerPage({
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
+        <select className="period-select" aria-label="客户来源" value={source} onChange={event => setSource(event.target.value)}><option value="">全部客户来源</option><option value="offline">线下电脑录入</option><option value="mini">小程序</option></select>
         <span className="result-count">{matches.length} 位客户</span>
       </div>
       <div className="table-scroll">
@@ -43,6 +46,7 @@ export default function CustomerPage({
             <tr>
               <th>客户</th>
               <th>客户类型</th>
+              <th>客户来源</th>
               <th>联系电话</th>
               <th>常用地址</th>
               <th>备注</th>
@@ -62,6 +66,7 @@ export default function CustomerPage({
                     {customer.kind}
                   </span>
                 </td>
+                <td>{customer.source_label || "线下电脑录入"}</td>
                 <td>{customer.phone || "—"}</td>
                 <td>{customer.address || "—"}</td>
                 <td className="muted">{customer.note || "—"}</td>

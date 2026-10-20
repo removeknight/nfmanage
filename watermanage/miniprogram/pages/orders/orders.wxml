@@ -2,12 +2,17 @@
   <view wx:if="{{loading}}" class="empty">正在加载订单…</view>
   <view wx:elif="{{!orders.length}}" class="empty-state"><view class="empty-icon">水</view><view class="empty-title">还没有订单</view><view class="empty-copy">去挑选几件喜欢的商品吧</view><button class="shop-btn" bindtap="goShop">去逛逛</button></view>
   <view wx:for="{{orders}}" wx:key="id" class="order-card">
-    <view class="order-head"><view><text class="order-label">订单号</text><text class="order-no">{{item.order_no}}</text></view><text class="status {{item.statusClass}}">{{item.statusText}}</text></view>
+    <view class="order-head"><view><text class="order-label">订单号</text><text class="order-no">{{item.order_no}}</text></view><text class="status {{item.statusClass}}">{{item.status}}</text></view>
     <view class="order-time">下单时间：{{item.timeText}}</view>
+    <view wx:if="{{item.activePickup}}" class="pickup-block" data-code="{{item.pickup_code}}" bindtap="copyCode"><view><view class="pickup-label">提货核销码</view><text class="pickup-number">{{item.pickup_code}}</text></view><text class="pickup-copy">点击复制 · 到店出示</text></view>
     <view wx:for="{{item.items}}" wx:key="product_id" class="order-item"><view class="item-main"><view class="item-name">{{item.name}}</view><view class="item-spec">{{item.brand}} · {{item.capacity}} · ×{{item.quantity}}</view></view><view class="item-price">¥{{item.subtotal}}</view></view>
-    <view class="order-address">收货地址：{{item.address}}</view>
+    <view class="order-address">联系人：{{item.contact_name || '—'}} · {{item.contact_phone || '未填写手机号'}}</view>
+    <view class="order-address">交付方式：{{item.fulfillment_label || '到店提货'}}</view>
+    <view wx:if="{{item.address}}" class="order-address">联系地址：{{item.address}}</view>
     <view wx:if="{{item.note}}" class="order-note">备注：{{item.note}}</view>
-    <view class="order-foot"><text class="order-hint">{{item.hint}}</text><view class="order-sum">合计 <text>¥{{item.totalText}}</text></view></view>
-    <button wx:if="{{item.status === '待商家确认'}}" class="cancel-btn" data-id="{{item.id}}" bindtap="cancelOrder">取消订单</button>
+    <view wx:if="{{item.discount_amount > 0}}" class="order-note">商品 ¥{{item.originalText}} · 优惠 ¥{{item.discountText}}</view>
+    <view wx:if="{{item.redeemedText}}" class="order-note">核销时间：{{item.redeemedText}}</view>
+    <view class="order-foot"><text class="order-hint">{{item.hint}}</text><view class="order-sum">应付 <text>¥{{item.totalText}}</text></view></view>
+    <view class="order-actions"><view wx:if="{{item.status === '待提货'}}" class="order-action cancel-action {{acting ? 'disabled' : ''}}" hover-class="action-pressed" data-id="{{item.id}}" bindtap="cancelOrder">取消订单</view><view class="order-action delete-action {{acting ? 'disabled' : ''}}" hover-class="action-pressed" data-id="{{item.id}}" bindtap="deleteOrder">删除记录</view></view>
   </view>
 </view>

@@ -13,14 +13,15 @@ export default function TransactionForm({
   resetVersion = 0,
 }) {
   const isPurchase = mode.startsWith("purchase");
-  const isSale = mode === "sale";
+  const computerOnly = mode === "computer-sale";
+  const isSale = mode === "sale" || computerOnly;
   const isAdjustment = mode.startsWith("adjust-");
   const presetId = Number(mode.split("-")[1]) || 0;
   const fixedProduct = Boolean(presetId);
   const [selectedId, setSelectedId] = useState(presetId);
   const [query, setQuery] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [createDelivery, setCreateDelivery] = useState(true);
+  const [createDelivery, setCreateDelivery] = useState(!computerOnly);
   const formRef = useRef(null);
   const lastReset = useRef(resetVersion);
   const selected = products.find((product) => product.id === selectedId);
@@ -37,7 +38,7 @@ export default function TransactionForm({
   const title = isPurchase
     ? "采购入库"
     : isSale
-      ? "新建销售单"
+      ? computerOnly ? "新建电脑订单" : "新建销售单"
       : "调整销售单价";
   function chooseProduct(product) {
     setSelectedId(product.id);
@@ -49,16 +50,16 @@ export default function TransactionForm({
       const field = document.querySelector('[name="unit_price"]');
       if (field) field.value = selected.sell_price;
     }
-  }, [isSale, selected]);
+  }, [isSale, selectedId]);
   useEffect(() => {
     if (!resetVersion || resetVersion === lastReset.current) return;
     formRef.current?.reset();
     setSelectedId(presetId);
     setQuery("");
     setPickerOpen(false);
-    setCreateDelivery(true);
+    setCreateDelivery(!computerOnly);
     lastReset.current = resetVersion;
-  }, [resetVersion, presetId]);
+  }, [resetVersion, presetId, computerOnly]);
   return (
     <form ref={formRef} onSubmit={submit} className="form-grid">
       {fixedProduct ? (
@@ -157,7 +158,7 @@ export default function TransactionForm({
             </option>
             {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
-                {customer.name} · {customer.kind}
+                {customer.name} · {customer.kind} · {customer.source_label || "线下电脑录入"}
               </option>
             ))}
           </select>
@@ -197,7 +198,7 @@ export default function TransactionForm({
         <span>经办人</span>
         <input name="operator" defaultValue="管理员" required />
       </label>
-      {isSale && (
+      {isSale && !computerOnly && (
         <label className="field full checkbox-field">
           <input
             type="checkbox"
@@ -226,7 +227,7 @@ export default function TransactionForm({
         {isPurchase
           ? "采购后自动重算库存加权均价并记录库存变动前后值。"
           : isSale
-            ? "选择商品和客户后自动生成配送任务，并记录经办人和库存变化。"
+            ? createDelivery ? "开单后扣减库存，生成配送任务并计入销售明细。" : "无需配送，开单后扣减库存，记录电脑订单并计入销售明细。"
             : "调价信息会保存原价、新价格、商品和操作人。"}
       </div>
       <div className="form-actions">

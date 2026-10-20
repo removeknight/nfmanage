@@ -1,45 +1,51 @@
-const app = getApp()
-
+const { request, formatDate } = require('../../utils/api')
+const { startPolling, stopPolling } = require('../../utils/polling')
 Page({
-  data: { orders: [], loading: true },
-  onShow() { this.loadOrders() },
+  data: { orders: [], loading: true, acting: false },
+  onShow() { startPolling(this, this.loadOrders) },
+  onHide() { stopPolling(this) },
+  onUnload() { stopPolling(this) },
   onPullDownRefresh() { this.loadOrders().finally(() => wx.stopPullDownRefresh()) },
-  request(path, options = {}) {
-    return new Promise((resolve, reject) => wx.request({
-      url: app.globalData.apiBaseUrl + path, method: options.method || 'GET', data: options.data || {},
-      header: { 'content-type': 'application/json', Authorization: `Bearer ${app.globalData.miniToken}` },
-      success: res => res.statusCode >= 200 && res.statusCode < 300 ? resolve(res.data) : reject(new Error(res.data.detail || '请求失败')),
-      fail: () => reject(new Error('无法连接服务器，请检查网络')),
-    }))
-  },
-  async loadOrders() {
-    if (!app.globalData.miniToken) { this.setData({ orders: [], loading: false }); return }
-    this.setData({ loading: true })
+  async loadOrders(quiet = false) {
+    if (this._loadingOrders) return
+    if (!getApp().globalData.miniToken) { this.setData({ orders: [], loading: false }); return }
+    this._loadingOrders = true
+    const version = this._viewVersion
+    if (!quiet) this.setData({ loading: true })
     try {
-      const orders = await this.request('/api/mini/orders')
+      const orders = await request('/api/mini/orders')
+      if (!this._pollVisible || version !== this._viewVersion) return
       this.setData({ orders: orders.map(order => ({ ...order, totalText: Number(order.total).toFixed(2),
-        timeText: this.formatDate(order.created_at), statusText: order.status,
-        statusClass: order.status === '待商家确认' ? 'pending' : order.status === '已确认' ? 'done' : 'cancelled',
-        hint: order.status === '待商家确认' ? '商家确认后为您安排配送' : order.status === '已确认' ? '订单已确认，正在安排配送' : `订单${order.status}` })) })
-    } catch (error) { wx.showToast({ title: error.message, icon: 'none' }) }
-    this.setData({ loading: false })
-  },
-  formatDate(value) {
-    if (!value) return ''
-    // Database timestamps are UTC without a suffix; parse explicitly as UTC,
-    // then display in the phone's local timezone.
-    const normalized = value.replace(' ', 'T')
-    const date = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(normalized) ? normalized : `${normalized}Z`)
-    const pad = n => String(n).padStart(2, '0')
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+        originalText: Number(order.original_total).toFixed(2), discountText: Number(order.discount_amount).toFixed(2),
+        timeText: formatDate(order.created_at), redeemedText: formatDate(order.redeemed_at),
+        statusClass: order.status === '待提货' ? 'pending' : order.status === '已核销' ? 'done' : 'cancelled',
+        activePickup: order.status === '待提货',
+        hint: order.status === '待提货' ? '下单成功，请凭提货码到店提货' : order.status === '已核销' ? '已完成提货核销' : `订单${order.status}` })) })
+    } catch (error) { if (!quiet) wx.showToast({ title: error.message, icon: 'none' }) }
+    finally { this._loadingOrders = false; if (version === this._viewVersion) this.setData({ loading: false }) }
   },
   cancelOrder(event) {
+    if (this.data.acting) return
     const id = event.currentTarget.dataset.id
-    wx.showModal({ title: '取消订单', content: '确定取消这笔待确认订单吗？', success: async result => {
-      if (!result.confirm) return
-      try { await this.request(`/api/mini/orders/${id}/cancel`, { method: 'POST' }); wx.showToast({ title: '订单已取消' }); this.loadOrders() }
+    wx.showModal({ title: '取消订单', content: '确定取消这笔待提货订单吗？库存和所用优惠券将退回，优惠券仍以原有效期为准。', success: async result => {
+      if (!result.confirm || this.data.acting) return
+      this.setData({ acting: true })
+      try { await request(`/api/mini/orders/${id}/cancel`, { method: 'POST' }); wx.showToast({ title: '订单已取消' }); await this.loadOrders() }
       catch (error) { wx.showToast({ title: error.message, icon: 'none' }) }
+      finally { this.setData({ acting: false }) }
     } })
   },
-  goShop() { wx.navigateBack({ delta: 1 }) },
+  deleteOrder(event) {
+    if (this.data.acting) return
+    const id = event.currentTarget.dataset.id
+    wx.showModal({ title: '从我的订单中删除', content: '只从手机订单列表中移除，商家仍保留记录。删除不会取消订单，待处理订单仍会继续处理。', success: async result => {
+      if (!result.confirm || this.data.acting) return
+      this.setData({ acting: true })
+      try { await request(`/api/mini/orders/${id}`, { method: 'DELETE' }); wx.showToast({ title: '已从列表删除' }); await this.loadOrders() }
+      catch (error) { wx.showToast({ title: error.message, icon: 'none' }) }
+      finally { this.setData({ acting: false }) }
+    } })
+  },
+  copyCode(event) { wx.setClipboardData({ data: event.currentTarget.dataset.code }) },
+  goShop() { wx.switchTab({ url: '/pages/index/index' }) },
 })

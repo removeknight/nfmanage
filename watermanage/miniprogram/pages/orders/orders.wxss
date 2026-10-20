@@ -1,5 +1,5 @@
 page { min-height: 100%; background: #f6f7f5; color: #24342f; }
-.page { padding: 24rpx 26rpx; }
+.page { width: 100%; min-width: 0; box-sizing: border-box; padding: 24rpx 26rpx; }
 .empty { padding: 90rpx 0; color: #87938e; text-align: center; font-size: 23rpx; }
 .empty-state { padding: 150rpx 20rpx; text-align: center; }
 .empty-icon { width: 104rpx; height: 104rpx; line-height: 104rpx; margin: 0 auto 22rpx; border-radius: 50%; background: #eaf2ee; color: #568574; font-size: 40rpx; }
@@ -7,7 +7,7 @@ page { min-height: 100%; background: #f6f7f5; color: #24342f; }
 .empty-copy { margin: 12rpx 0 26rpx; color: #87938e; font-size: 21rpx; }
 .shop-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 170rpx; height: 66rpx; padding: 0 26rpx; border-radius: 34rpx; background: #356e60; color: #fff; font-size: 21rpx; line-height: 1; }
 .shop-btn::after, .cancel-btn::after { border: 0; }
-.order-card { margin-bottom: 16rpx; padding: 22rpx; border: 1rpx solid #e8ede9; border-radius: 17rpx; background: #fff; }
+.order-card { width: 100%; min-width: 0; box-sizing: border-box; margin-bottom: 16rpx; padding: 22rpx; border: 1rpx solid #e8ede9; border-radius: 17rpx; background: #fff; }
 .order-head { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
 .order-label { margin-right: 8rpx; color: #8a9690; font-size: 18rpx; }
 .order-no { color: #53665e; font-size: 19rpx; }
@@ -26,4 +26,10 @@ page { min-height: 100%; background: #f6f7f5; color: #24342f; }
 .order-hint { color: #89958f; font-size: 18rpx; }
 .order-sum { flex: none; color: #78857f; font-size: 20rpx; }
 .order-sum text { margin-left: 6rpx; color: #bc6a4c; font-size: 25rpx; font-weight: 700; }
-.cancel-btn { display: flex; align-items: center; justify-content: center; width: auto; min-width: 0; height: 52rpx; margin: 15rpx 0 0 auto; padding: 0 18rpx; border: 1rpx solid #dfe7e2; border-radius: 27rpx; background: #fff; color: #66766e; font-size: 19rpx; line-height: 1; }
+.order-actions { position: relative; width: 100%; height: 60rpx; box-sizing: border-box; margin-top: 18rpx; }
+.order-action { position: absolute; top: 0; display: block; width: calc(50% - 8rpx); height: 60rpx; box-sizing: border-box; padding: 0; border: 1rpx solid #dfe7e2; border-radius: 30rpx; background: #fff; color: #66766e; font-size: 21rpx; line-height: 58rpx; text-align: center; }
+.cancel-action { left: 0; }
+.delete-action { right: 0; color: #989f9a; }
+.order-action.disabled { opacity: .5; }.action-pressed { background: #f2f6f3; }
+.pickup-block { display: flex; justify-content: space-between; align-items: center; padding: 22rpx; margin-top: 16rpx; border-radius: 12rpx; background: #f0f6f2; }
+.pickup-label { color: #6b8274; font-size: 20rpx; }.pickup-number { display: block; margin-top: 8rpx; color: #356e60; font-size: 38rpx; font-weight: 700; letter-spacing: 7rpx; }.pickup-copy { color: #8d9c92; font-size: 18rpx; }

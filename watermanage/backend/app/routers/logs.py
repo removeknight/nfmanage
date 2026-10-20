@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session, joinedload
 from ..database import get_db
 from ..models import OperationLog, Transaction
 from ..serializers import product_info
+from ..services.audit import ACTION_LABELS
+from ..services.coupons import iso_utc
 
 router = APIRouter(prefix="/api/logs", tags=["操作日志"])
 
@@ -57,6 +59,7 @@ def list_logs(
         {
             "id": f"op-{row.id}",
             "kind": row.action,
+            "kind_label": ACTION_LABELS.get(row.action, "其他操作"),
             "product": {
                 "brand": row.product_snapshot.split(" ", 1)[0],
                 "name": row.product_snapshot.split(" ", 1)[1].split(" · ", 1)[0]
@@ -73,7 +76,7 @@ def list_logs(
             "before_value": row.before_value,
             "after_value": row.after_value,
             "note": row.detail,
-            "created_at": row.created_at,
+            "created_at": iso_utc(row.created_at),
         }
         for row in recent
     ]
@@ -81,6 +84,7 @@ def list_logs(
         {
             "id": f"tx-{row.id}",
             "kind": row.kind,
+            "kind_label": "已冲销销售" if row.voided_at else ACTION_LABELS.get(row.kind, "其他操作"),
             "product": product_info(row.product),
             "quantity": row.quantity,
             "unit_price": row.unit_price,
@@ -89,7 +93,7 @@ def list_logs(
             "before_value": "",
             "after_value": "",
             "note": row.note,
-            "created_at": row.created_at,
+            "created_at": iso_utc(row.created_at),
         }
         for row in legacy
     )

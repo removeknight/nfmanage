@@ -2,22 +2,8 @@ import { useEffect, useState } from "react";
 import { Clock3, Search } from "lucide-react";
 import { actionLabels, formatDate } from "../../components/UI";
 
-const labels = {
-  ...actionLabels,
-  product_create: "新增商品",
-  product_deactivate: "商品下架",
-  product_reactivate: "商品重新上架",
-  delivery_status: "配送状态",
-};
-const types = [
-  ["purchase", "采购入库"],
-  ["sale", "销售开单"],
-  ["adjustment", "调价"],
-  ["product_create", "新增商品"],
-  ["product_deactivate", "商品下架"],
-  ["product_reactivate", "商品重新上架"],
-  ["delivery_status", "配送状态"],
-];
+const labels = actionLabels;
+const types = Object.entries(labels);
 const isoDate = (value) => {
   const date = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
   return date.toISOString().slice(0, 10);
@@ -53,7 +39,7 @@ export default function LogPage({ logs, products, fetchLogs }) {
     return () => {
       current = false;
     };
-  }, [fetchLogs, filters]);
+  }, [fetchLogs, filters, logs]);
   function change(key, value) {
     setFilters((old) => ({ ...old, [key]: value }));
   }
@@ -135,7 +121,7 @@ export default function LogPage({ logs, products, fetchLogs }) {
                 <td className="muted">{formatDate(row.created_at)}</td>
                 <td>
                   <span className={`kind-chip ${row.kind}`}>
-                    {labels[row.kind] || row.kind}
+                    {row.kind_label || labels[row.kind] || "其他操作"}
                   </span>
                 </td>
                 <td>

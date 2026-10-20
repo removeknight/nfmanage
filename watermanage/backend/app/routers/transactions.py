@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
@@ -9,6 +9,7 @@ from ..schemas import PriceIn, SaleIn, StockIn
 from ..serializers import transaction_info
 from ..services.audit import write_log
 from ..services.inventory import apply_stock
+from ..services.reporting_time import start_of_day_utc
 
 router = APIRouter(prefix="/api", tags=["采购与销售"])
 
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api", tags=["采购与销售"])
 def list_transactions(db: Session = Depends(get_db)):
     rows = db.scalars(
         select(Transaction)
+        .where(Transaction.voided_at.is_(None))
         .options(joinedload(Transaction.product), joinedload(Transaction.customer))
         .order_by(Transaction.created_at.desc())
         .limit(100)
@@ -40,9 +42,9 @@ def list_purchases(
         raise HTTPException(400, "开始日期不能晚于结束日期")
     query = select(Transaction).where(Transaction.kind == "purchase")
     if start_date:
-        query = query.where(Transaction.created_at >= datetime.combine(start_date, time.min))
+        query = query.where(Transaction.created_at >= start_of_day_utc(start_date))
     if end_date:
-        query = query.where(Transaction.created_at < datetime.combine(end_date + timedelta(days=1), time.min))
+        query = query.where(Transaction.created_at < start_of_day_utc(end_date + timedelta(days=1)))
     if category:
         query = query.join(Product, Product.id == Transaction.product_id).where(Product.category == category)
     rows = db.scalars(
@@ -62,11 +64,20 @@ def sale(data: SaleIn, db: Session = Depends(get_db)):
 def list_sales(db: Session = Depends(get_db)):
     rows = db.scalars(
         select(Transaction)
-        .where(Transaction.kind == "sale")
+        .where(Transaction.kind == "sale", Transaction.voided_at.is_(None))
         .options(joinedload(Transaction.product), joinedload(Transaction.customer))
         .order_by(Transaction.created_at.desc())
     ).all()
     return [transaction_info(row) for row in rows]
+
+
+@router.get("/computer-orders")
+def list_computer_orders(db: Session = Depends(get_db)):
+    rows = db.scalars(select(Transaction).where(Transaction.kind == "sale", Transaction.source == "offline",
+                        Transaction.delivery_id.is_(None), Transaction.voided_at.is_(None))
+                        .options(joinedload(Transaction.product), joinedload(Transaction.customer))
+                        .order_by(Transaction.created_at.desc(), Transaction.id.desc()).limit(500)).all()
+    return [{**transaction_info(row), "order_no": f"PC{row.id:08d}", "status": "已开单"} for row in rows]
 
 
 @router.get("/sales/overview")
@@ -77,21 +88,21 @@ def sales_overview(
 ):
     if start_date > end_date:
         raise HTTPException(400, "开始日期不能晚于结束日期")
-    start = datetime.combine(start_date, time.min)
-    end = datetime.combine(end_date + timedelta(days=1), time.min)
+    start = start_of_day_utc(start_date)
+    end = start_of_day_utc(end_date + timedelta(days=1))
     totals = db.execute(
         select(
             func.coalesce(func.sum(Transaction.quantity), 0),
             func.coalesce(func.sum(Transaction.total), 0),
             func.count(Transaction.id),
-        ).where(Transaction.kind == "sale", Transaction.created_at >= start, Transaction.created_at < end)
+        ).where(Transaction.kind == "sale", Transaction.voided_at.is_(None), Transaction.created_at >= start, Transaction.created_at < end)
     ).one()
     product_rows = db.execute(
         select(Product.id, Product.name, Product.brand, Product.category, Product.capacity,
                func.sum(Transaction.quantity).label("quantity"),
                func.sum(Transaction.total).label("amount"), func.count(Transaction.id).label("orders"))
         .join(Product, Product.id == Transaction.product_id)
-        .where(Transaction.kind == "sale", Transaction.created_at >= start, Transaction.created_at < end)
+        .where(Transaction.kind == "sale", Transaction.voided_at.is_(None), Transaction.created_at >= start, Transaction.created_at < end)
         .group_by(Product.id, Product.name, Product.brand, Product.category, Product.capacity)
         .order_by(func.sum(Transaction.quantity).desc(), func.sum(Transaction.total).desc()).limit(10)
     ).all()
@@ -99,7 +110,7 @@ def sales_overview(
         select(Product.brand, func.sum(Transaction.quantity).label("quantity"),
                func.sum(Transaction.total).label("amount"), func.count(Transaction.id).label("orders"))
         .join(Product, Product.id == Transaction.product_id)
-        .where(Transaction.kind == "sale", Transaction.created_at >= start, Transaction.created_at < end)
+        .where(Transaction.kind == "sale", Transaction.voided_at.is_(None), Transaction.created_at >= start, Transaction.created_at < end)
         .group_by(Product.brand)
         .order_by(func.sum(Transaction.quantity).desc(), func.sum(Transaction.total).desc()).limit(10)
     ).all()
@@ -108,7 +119,7 @@ def sales_overview(
                func.sum(Transaction.quantity).label("quantity"),
                func.sum(Transaction.total).label("amount"), func.count(Transaction.id).label("orders"))
         .join(Customer, Customer.id == Transaction.customer_id)
-        .where(Transaction.kind == "sale", Transaction.created_at >= start, Transaction.created_at < end)
+        .where(Transaction.kind == "sale", Transaction.voided_at.is_(None), Transaction.created_at >= start, Transaction.created_at < end)
         .group_by(Customer.id, Customer.name, Customer.kind)
         .order_by(func.sum(Transaction.quantity).desc(), func.sum(Transaction.total).desc()).limit(10)
     ).all()

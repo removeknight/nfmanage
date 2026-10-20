@@ -31,10 +31,21 @@ export const api = {
   deliveries: () => request("/api/deliveries"),
   transactions: () => request("/api/transactions"),
   sales: () => request("/api/sales"),
-  merchantLogin: (password) => send("/api/mini/merchant/session", { password }),
-  miniOrders: (token) => request("/api/mini/merchant/orders", { headers: { Authorization: `Bearer ${token}` } }),
-  confirmMiniOrder: (id, token) => request(`/api/mini/merchant/orders/${id}/confirm`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({}) }),
-  rejectMiniOrder: (id, token) => request(`/api/mini/merchant/orders/${id}/reject`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({}) }),
+  computerOrders: () => request("/api/computer-orders"),
+  miniOrders: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => value && params.set(key, value));
+    return request(`/api/mini/merchant/orders${params.size ? `?${params}` : ""}`);
+  },
+  cancelMiniOrder: (id) => send(`/api/mini/merchant/orders/${id}/cancel`, {}),
+  lookupPickup: (code) => request(`/api/mini/merchant/pickup/${encodeURIComponent(code)}`),
+  pickupByPhone: (suffix) => request(`/api/mini/merchant/pickup-by-phone?phone_suffix=${encodeURIComponent(suffix)}`),
+  redeemPickup: (code) => send("/api/mini/merchant/redeem", { code }),
+  miniCustomers: () => request("/api/mini/merchant/customers"),
+  couponSettings: () => request("/api/mini/merchant/coupon-settings"),
+  saveCouponSettings: (body) => send("/api/mini/merchant/coupon-settings", body, "PUT"),
+  issueCoupons: (body) => send("/api/mini/merchant/coupons", body),
+  issuedCoupons: () => request("/api/mini/merchant/coupons"),
   salesOverview: (startDate, endDate) =>
     request(`/api/sales/overview?start_date=${startDate}&end_date=${endDate}`),
   purchases: (filters = {}) => {

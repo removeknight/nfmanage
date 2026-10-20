@@ -1,0 +1,9 @@
+<view class="me-page">
+  <view class="identity-card"><view class="avatar">{{avatarText}}</view><view class="identity-info"><view class="identity-name">{{customer ? customer.name : '欢迎来到农丰水站'}}</view><view class="identity-phone">{{customer ? customer.phone : '绑定账号，领取新用户优惠券'}}</view></view><view class="profile-link" bindtap="goProfile">{{customer ? '修改资料' : '去绑定'}} ›</view></view>
+  <view wx:if="{{customer}}" class="address-card"><text class="muted">常用地址</text><view>{{customer.address || '暂未填写，可在资料中补充'}}</view></view>
+  <view class="orders-entry" bindtap="goOrders"><view><view class="entry-title">我的订单</view><view class="entry-copy">查看订单明细与提货核销码</view></view><text>›</text></view>
+  <view class="coupon-heading">我的优惠券 <text>{{availableCount}} 张可用 · 自动更新</text></view>
+  <view class="coupon-tabs"><view wx:for="{{statuses}}" wx:key="*this" class="coupon-tab {{activeStatus === item ? 'active' : ''}}" data-status="{{item}}" bindtap="selectStatus">{{item}}</view></view>
+  <view wx:if="{{loading}}" class="empty-copy">正在加载…</view><view wx:elif="{{!displayedCoupons.length}}" class="empty-copy">暂无{{activeStatus}}的优惠券</view>
+  <view wx:for="{{displayedCoupons}}" wx:key="id" class="coupon-card {{item.status !== '可使用' ? 'inactive' : ''}}"><view class="coupon-value"><text>¥</text>{{item.amountText}}</view><view class="coupon-info"><view class="coupon-name">{{item.title}}</view><view class="coupon-rule">{{item.usage_label}} · 每单限用一张</view><view wx:if="{{item.usage_type === 'large_bucket'}}" class="coupon-rule">仅限“大桶水”品类商品</view><view class="coupon-date">有效期至 {{item.expiresText}}</view></view><view wx:if="{{item.status === '可使用'}}" class="use-coupon" bindtap="goShop">去使用</view><text wx:else class="coupon-state">{{item.status}}</text></view>
+</view>

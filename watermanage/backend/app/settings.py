@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     wechat_app_id: str = ""
     wechat_app_secret: str = ""
     mini_auth_mode: str = "wechat"
-    merchant_api_key: str = ""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="水饮管家 API", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="农丰水站 API", version="1.4.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins.split(","),

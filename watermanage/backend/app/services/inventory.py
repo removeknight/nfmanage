@@ -18,6 +18,9 @@ def apply_stock(
     delivery: bool = False,
     address: str = "",
 ):
+    customer = db.get(Customer, customer_id) if kind == "sale" and customer_id else None
+    if kind == "sale" and not customer:
+        raise HTTPException(400, "请选择有效客户")
     product = db.scalar(
         select(Product)
         .where(Product.id == data.product_id, Product.active.is_(True))
@@ -41,6 +44,7 @@ def apply_stock(
 
     tx = Transaction(
         kind=kind,
+        source="offline",
         product_id=product.id,
         customer_id=customer_id,
         quantity=data.quantity,
@@ -62,18 +66,16 @@ def apply_stock(
     )
 
     if delivery:
-        customer = db.get(Customer, customer_id) if customer_id else None
-        if not customer:
-            raise HTTPException(400, "请选择有效客户")
-        db.add(
-            Delivery(
-                customer_id=customer_id,
-                product_id=product.id,
-                quantity=data.quantity,
-                address=address or customer.address,
-                note=data.note,
-            )
+        task = Delivery(
+            customer_id=customer_id,
+            product_id=product.id,
+            quantity=data.quantity,
+            address=address or customer.address,
+            note=data.note,
         )
+        db.add(task)
+        db.flush()
+        tx.delivery_id = task.id
 
     db.commit()
     db.refresh(tx)

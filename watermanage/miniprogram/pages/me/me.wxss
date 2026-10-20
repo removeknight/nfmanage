@@ -1,0 +1,18 @@
+page { background: #f6f7f5; color: #24342f; }
+.me-page { padding: 30rpx 26rpx 60rpx; }
+.identity-card { display: flex; align-items: center; padding: 30rpx 22rpx; border-radius: 20rpx; background: #eaf2ee; }
+.avatar { flex: none; width: 82rpx; height: 82rpx; border-radius: 50%; background: #356e60; color: #fff; font-size: 32rpx; text-align: center; line-height: 82rpx; }
+.identity-info { flex: 1; min-width: 0; margin-left: 20rpx; }
+.identity-name { font-size: 30rpx; font-weight: 650; }
+.identity-phone { margin-top: 9rpx; color: #7b8a81; font-size: 22rpx; }
+.profile-link { flex: none; padding: 10rpx; color: #46725e; font-size: 22rpx; }
+.address-card { margin-top: 16rpx; padding: 24rpx; border: 1rpx solid #e7ece8; border-radius: 16rpx; background: #fff; font-size: 23rpx; line-height: 1.6; }
+.muted { color: #8c9890; font-size: 21rpx; }
+.orders-entry { display: flex; align-items: center; justify-content: space-between; margin-top: 18rpx; padding: 26rpx; border: 1rpx solid #e7ece8; border-radius: 16rpx; background: #fff; }
+.entry-title { font-size: 28rpx; font-weight: 600; }.entry-copy { margin-top: 9rpx; color: #8c9890; font-size: 21rpx; }.orders-entry > text { color: #8c9890; font-size: 36rpx; }
+.coupon-heading { margin-top: 34rpx; font-size: 29rpx; font-weight: 650; }.coupon-heading text { margin-left: 10rpx; color: #8c9890; font-size: 21rpx; font-weight: normal; }
+.coupon-tabs { display: flex; margin: 22rpx 0; gap: 16rpx; }.coupon-tab { padding: 12rpx 26rpx; border-radius: 28rpx; background: #fff; color: #7b8a81; font-size: 22rpx; }.coupon-tab.active { background: #356e60; color: #fff; }
+.empty-copy { padding: 60rpx 0; text-align: center; color: #96a198; font-size: 23rpx; }
+.coupon-card { display: flex; align-items: center; margin-bottom: 16rpx; padding: 24rpx 18rpx; border: 1rpx solid #e2eae4; border-radius: 16rpx; background: #fff; }
+.coupon-value { flex: none; min-width: 125rpx; padding-right: 16rpx; border-right: 1rpx dashed #dfe8e1; color: #b66b49; font-size: 35rpx; font-weight: 700; }.coupon-value text { margin-right: 4rpx; font-size: 22rpx; }
+.coupon-info { flex: 1; min-width: 0; margin-left: 17rpx; }.coupon-name { font-size: 24rpx; font-weight: 600; }.coupon-rule,.coupon-date { margin-top: 9rpx; color: #91a095; font-size: 18rpx; }.use-coupon { flex: none; padding: 12rpx 16rpx; border-radius: 24rpx; background: #edf4ef; color: #356e60; font-size: 20rpx; }.coupon-state { flex: none; color: #94a097; font-size: 20rpx; }.inactive { opacity: .65; }

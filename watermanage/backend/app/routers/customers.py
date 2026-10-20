@@ -17,12 +17,13 @@ def list_customers(db: Session = Depends(get_db)):
 
 def _customer_info(row: Customer):
     return {"id": row.id, "name": row.name, "kind": row.kind, "phone": row.phone,
+            "source": row.source, "source_label": "小程序" if row.source == "mini" else "线下电脑录入",
             "address": row.address, "note": row.note, "created_at": row.created_at}
 
 
 @router.post("")
 def create_customer(data: CustomerIn, db: Session = Depends(get_db)):
-    row = Customer(**data.model_dump())
+    row = Customer(**data.model_dump(), source="offline")
     db.add(row)
     db.commit()
     db.refresh(row)

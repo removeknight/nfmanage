@@ -1,13 +1,25 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/me/me",
+    "pages/profile/profile",
     "pages/orders/orders",
     "pages/logs/logs"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "清泉水站",
+    "navigationBarTitleText": "农丰水站",
     "navigationBarBackgroundColor": "#ffffff"
+  },
+  "tabBar": {
+    "color": "#87938e",
+    "selectedColor": "#356e60",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "选购" },
+      { "pagePath": "pages/me/me", "text": "我的" }
+    ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",

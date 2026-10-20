@@ -35,7 +35,28 @@
   height: 64px;
 }
 .mini-order-line { padding: 3px 0 7px; line-height: 1.45; }
-.merchant-login-panel { max-width: 720px; margin: 30px auto; }
-.merchant-login-form { display: flex; align-items: center; gap: 12px; padding: 22px 28px; color: var(--muted); }
-.merchant-login-form input { flex: 1; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); }
-.merchant-login-error { margin: 0 28px 22px; color: #c34b4b; }
+.pickup-panel, .coupon-section { padding: 24px; margin-bottom: 20px; }
+.pickup-panel h3, .coupon-section h2 { margin: 0 0 10px; }
+.pickup-form, .coupon-form { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin: 18px 0; }
+.pickup-form input, .coupon-form input, .coupon-form select, .coupon-search { box-sizing: border-box; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--text); }
+.pickup-form input { max-width: 220px; letter-spacing: 3px; }
+.coupon-form label { display: grid; gap: 8px; }
+.coupon-form input { width: 100%; }
+.pickup-result { padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.pickup-result h4 { margin: 0 0 14px; }
+.pickup-field { display: grid; gap: 8px; min-width: 0; color: var(--muted); font-size: 13px; }
+.pickup-field select { box-sizing: border-box; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--text); }
+.pickup-phone-results { margin: 18px 0; }
+.pickup-candidates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; max-height: 460px; overflow-y: auto; }
+.pickup-candidate { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.pickup-candidate.selected { border-color: var(--primary, #356e60); background: var(--surface); }
+.pickup-candidate-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.pickup-candidate p { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.pickup-phone { display: block; margin: 6px 0; font-variant-numeric: tabular-nums; }
+.order-phone { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.order-search-note { margin: 0; padding: 0 24px 16px; font-size: 12px; }
+.coupon-check { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.coupon-check input { width: 16px; height: 16px; }
+.coupon-search { width: min(100%, 420px); margin: 10px 0; }
+.coupon-recipients { max-height: 240px; overflow: auto; margin-bottom: 16px; border-top: 1px solid var(--line); }
+.coupon-message { padding: 14px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin-bottom: 18px; }

@@ -18,6 +18,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
   const [tab, setTab] = useState("detail");
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState("all");
+  const [source, setSource] = useState("");
   const [range, setRange] = useState(() => rangeFor(7));
   const [overview, setOverview] = useState({
     products: [],
@@ -41,19 +42,20 @@ export default function SalesPage({ sales, getOverview, showError }) {
     return () => {
       alive = false;
     };
-  }, [tab, range.start, range.end, getOverview, showError]);
+  }, [tab, range.start, range.end, getOverview, showError, sales]);
 
   const rows = useMemo(() => {
     const since = period === "all" ? 0 : Date.now() - Number(period) * 86400000;
     return sales.filter(
       (row) =>
+        (!source || row.source === source) &&
         new Date(row.created_at).getTime() >= since &&
         matchesSearch(
           `${row.product?.brand} ${row.product?.name} ${row.product?.category} ${row.product?.capacity} ${row.customer?.name} ${row.operator}`,
           query,
         ),
     );
-  }, [sales, query, period]);
+  }, [sales, query, period, source]);
   const summary = rows.reduce((result, row) => {
     const category = row.product?.category || "未分类";
     result[category] ||= {
@@ -69,7 +71,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
     if (row.cost_price == null) result[category].unknownCost += 1;
     else
       result[category].profit +=
-        row.quantity * (Number(row.unit_price) - Number(row.cost_price));
+        Number(row.total) - row.quantity * Number(row.cost_price);
     return result;
   }, {});
   const total = rows.reduce((value, row) => value + Number(row.total), 0);
@@ -78,7 +80,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
       row.cost_price == null
         ? value
         : value +
-          row.quantity * (Number(row.unit_price) - Number(row.cost_price)),
+          Number(row.total) - row.quantity * Number(row.cost_price),
     0,
   );
   const unknownCostCount = rows.filter((row) => row.cost_price == null).length;
@@ -197,6 +199,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </label>
+              <select className="period-select" aria-label="订单来源" value={source} onChange={event => setSource(event.target.value)}><option value="">全部订单来源</option><option value="offline">电脑订单</option><option value="mini">小程序</option></select>
               <span className="result-count">{rows.length} 条明细</span>
             </div>
             <div className="table-scroll">
@@ -207,6 +210,8 @@ export default function SalesPage({ sales, getOverview, showError }) {
                     <th>商品</th>
                     <th>品类</th>
                     <th>客户</th>
+                    <th>订单来源</th>
+                    <th>交付方式</th>
                     <th>数量</th>
                     <th>销售单价</th>
                     <th>金额</th>
@@ -219,8 +224,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
                     const profit =
                       row.cost_price == null
                         ? null
-                        : row.quantity *
-                          (Number(row.unit_price) - Number(row.cost_price));
+                        : Number(row.total) - row.quantity * Number(row.cost_price);
                     return (
                       <tr key={row.id}>
                         <td>{formatDate(row.created_at)}</td>
@@ -234,6 +238,8 @@ export default function SalesPage({ sales, getOverview, showError }) {
                         </td>
                         <td>{row.product?.category || "—"}</td>
                         <td>{row.customer?.name || "—"}</td>
+                        <td>{row.source_label || "电脑订单"}</td>
+                        <td>{row.fulfillment_label || "—"}</td>
                         <td>{row.quantity}</td>
                         <td>{money(row.unit_price)}</td>
                         <td className="price-strong">{money(row.total)}</td>

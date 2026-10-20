@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { api } from "./api/client";
 import { Modal } from "./components/UI";
@@ -14,6 +14,9 @@ import TransactionForm from "./features/transactions/TransactionForm";
 import SalesPage from "./features/sales/SalesPage";
 import PurchasePage from "./features/purchases/PurchasePage";
 import MiniOrderPage from "./features/orders/MiniOrderPage";
+import ComputerOrderPage from "./features/orders/ComputerOrderPage";
+import CouponPage from "./features/coupons/CouponPage";
+import { useAutoRefresh } from "./utils/useAutoRefresh";
 
 const initialData = {
   dashboard: {},
@@ -25,6 +28,7 @@ const initialData = {
   logs: [],
   sales: [],
   miniOrders: [],
+  computerOrders: [],
 };
 function formValues(event) {
   return Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -42,13 +46,15 @@ export default function App() {
     () => localStorage.getItem("watermanage-theme") || "ocean",
   );
   const [formReset, setFormReset] = useState(0);
-  const [merchantToken, setMerchantToken] = useState(() => sessionStorage.getItem("watermanage-merchant-token") || "");
+  const requestVersion = useRef(0);
+  const knownOrderIds = useRef(null);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("watermanage-theme", theme);
   }, [theme]);
 
   const refresh = useCallback(async () => {
+    const version = ++requestVersion.current;
     const [
       dashboard,
       products,
@@ -58,6 +64,7 @@ export default function App() {
       transactions,
       logs,
       sales,
+      computerOrders,
     ] = await Promise.all([
       api.dashboard(),
       api.products(),
@@ -67,8 +74,15 @@ export default function App() {
       api.transactions(),
       api.logs(),
       api.sales(),
+      api.computerOrders(),
     ]);
-    const miniOrders = merchantToken ? await api.miniOrders(merchantToken) : [];
+    const miniOrders = await api.miniOrders();
+    if (version !== requestVersion.current) return;
+    if (knownOrderIds.current) {
+      const added = miniOrders.filter(order => !knownOrderIds.current.has(order.id));
+      if (added.length) setToast(`收到 ${added.length} 笔小程序新订单，请及时安排提货`);
+    }
+    knownOrderIds.current = new Set(miniOrders.map(order => order.id));
     setData({
       dashboard,
       products,
@@ -79,8 +93,10 @@ export default function App() {
       logs,
       sales,
       miniOrders,
+      computerOrders,
     });
-  }, [merchantToken]);
+  }, []);
+  useAutoRefresh(refresh);
   useEffect(() => {
     refresh().catch((error) => setToast(`${error.message} · 请检查服务连接`));
   }, [refresh]);
@@ -119,23 +135,24 @@ export default function App() {
   function saveTransaction(event) {
     event.preventDefault();
     const body = formValues(event);
+    const isSale = modal === "sale" || modal === "computer-sale";
     const deliveryField =
       event.currentTarget.elements.namedItem("create_delivery");
-    if (modal === "sale") body.create_delivery = deliveryField.checked;
+    if (isSale) body.create_delivery = modal === "computer-sale" ? false : deliveryField.checked;
     for (const key of ["product_id", "quantity", "unit_price"])
       if (body[key] !== undefined) body[key] = Number(body[key]);
     if (body.customer_id) body.customer_id = Number(body.customer_id);
     const action = modal.startsWith("purchase")
       ? api.purchase(body)
-      : modal === "sale"
+      : isSale
         ? api.sale(body)
         : api.adjustPrice(body);
     const message = modal.startsWith("purchase")
       ? "采购入库成功"
-      : modal === "sale"
-        ? "开单成功，已生成配送任务"
+      : isSale
+        ? body.create_delivery ? "开单成功，已生成配送任务" : "电脑订单已保存，无需配送"
         : "售价已调整";
-    const keepOpen = modal.startsWith("purchase") || modal === "sale";
+    const keepOpen = modal.startsWith("purchase") || isSale;
     runAction(() => action, message, {
       keepOpen,
       onSuccess: () => keepOpen && setFormReset((n) => n + 1),
@@ -174,35 +191,15 @@ export default function App() {
       setToast(error.message);
     }
   }
-  async function confirmMiniOrder(order) {
-    if (!window.confirm(`确认订单 ${order.order_no}？确认后将正式扣减库存并生成配送任务。`)) return;
+  async function cancelMiniOrder(order) {
+    if (!window.confirm(`取消订单 ${order.order_no}？将恢复库存和所用优惠券，并冲销销售金额。优惠券保留原有效期。`)) return;
     try {
-      await api.confirmMiniOrder(order.id, merchantToken);
+      await api.cancelMiniOrder(order.id);
       await refresh();
-      setToast("订单已确认，库存已扣减并生成配送任务");
+      setToast("订单已取消，库存和优惠券已退回");
     } catch (error) {
       setToast(error.message);
     }
-  }
-  async function rejectMiniOrder(order) {
-    if (!window.confirm(`拒绝订单 ${order.order_no} 并释放预留库存？`)) return;
-    try {
-      await api.rejectMiniOrder(order.id, merchantToken);
-      await refresh();
-      setToast("订单已拒绝，预留库存已释放");
-    } catch (error) {
-      setToast(error.message);
-    }
-  }
-  async function loginMerchant(password) {
-    const result = await api.merchantLogin(password);
-    sessionStorage.setItem("watermanage-merchant-token", result.token);
-    setMerchantToken(result.token);
-  }
-  function logoutMerchant() {
-    sessionStorage.removeItem("watermanage-merchant-token");
-    setMerchantToken("");
-    setData((current) => ({ ...current, miniOrders: [] }));
   }
   function openModal(name) {
     setModal(name);
@@ -247,8 +244,10 @@ export default function App() {
       />
     ),
     小程序订单: (
-      <MiniOrderPage orders={data.miniOrders} merchantToken={merchantToken} loginMerchant={loginMerchant} logoutMerchant={logoutMerchant} confirmOrder={confirmMiniOrder} rejectOrder={rejectMiniOrder} refresh={() => refresh().catch((error) => setToast(error.message))} />
+      <MiniOrderPage orders={data.miniOrders} cancelOrder={cancelMiniOrder} refresh={refresh} />
     ),
+    电脑订单: <ComputerOrderPage orders={data.computerOrders} openModal={openModal} />,
+    优惠券管理: <CouponPage />,
     操作日志: (
       <LogPage
         logs={data.logs}
@@ -277,6 +276,8 @@ export default function App() {
         ? "新增常用客户"
         : modal.startsWith("purchase")
           ? "采购入库"
+          : modal === "computer-sale"
+            ? "新建电脑订单（无需配送）"
           : modal === "sale"
             ? "新建销售单"
             : "调整销售单价";
@@ -286,7 +287,7 @@ export default function App() {
         page={page}
         setPage={setPage}
         pending={data.dashboard.pending_deliveries}
-        miniPending={data.miniOrders.filter((order) => order.status === "待商家确认").length}
+        miniPending={data.miniOrders.filter((order) => order.status === "待提货").length}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
       />

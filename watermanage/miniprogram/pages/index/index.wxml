@@ -1,10 +1,10 @@
 <view class="page">
   <view class="topbar">
-    <view><view class="brand-title">清泉水站</view><view class="brand-sub">好水随时到家</view></view>
-    <view class="profile" bindtap="goOrders"><text class="profile-icon">◷</text><text>我的订单</text></view>
+    <view><view class="brand-title">农丰水站</view><view class="brand-sub">好水随时到家</view></view>
+    <view class="profile" bindtap="goMe"><text class="profile-icon">◯</text><text>我的</text></view>
   </view>
 
-  <view class="hero"><view class="hero-tag">每日好水 · 新鲜直送</view><view class="hero-title">喝好水，生活更自在</view><view class="hero-copy">选好商品，商家确认后为您安排配送</view><view class="hero-bubbles">滴 · 泉 · 水</view></view>
+  <view class="hero"><view class="hero-tag">每日好水 · 品质优选</view><view class="hero-title">喝好水，生活更自在</view><view class="hero-copy">下单即成功，凭六位提货码到店提货</view><view class="hero-bubbles">滴 · 泉 · 水</view></view>
 
   <scroll-view class="category-bar" scroll-x>
     <view wx:for="{{categories}}" wx:key="*this" class="category-chip {{activeCategory === item ? 'selected' : ''}}" data-category="{{item}}" bindtap="selectCategory">{{item}}</view>
@@ -35,18 +35,16 @@
 
   <view wx:if="{{cartCount > 0}}" class="cart-bar"><view class="cart-summary"><view><text class="cart-count">{{cartCount}}</text><text class="cart-label">件商品</text></view><text class="cart-total">¥{{cartTotal}}</text></view><button class="checkout-btn" bindtap="openCheckout">去结算</button></view>
 
-  <view wx:if="{{showBind}}" class="modal-mask"><view class="modal-card"><view class="modal-title">欢迎来到清泉水站</view><view class="modal-copy">{{bindHint}}</view>
-    <input class="field" placeholder="怎么称呼您" data-field="bindName" bindinput="updateField" />
-    <input class="field" placeholder="联系电话，方便配送联系" type="number" data-field="bindPhone" bindinput="updateField" />
-    <input class="field" placeholder="常用收货地址（选填）" data-field="bindAddress" bindinput="updateField" />
-    <button class="primary-btn" bindtap="bindAccount">{{bindButtonText}}</button></view></view>
-
   <view wx:if="{{showCheckout}}" class="modal-mask"><view class="modal-card checkout-modal"><view class="modal-title">确认订单</view><view class="checkout-summary">{{checkoutLines.length}} 种商品 · {{cartCount}} 件 · <text class="checkout-total">¥{{cartTotal}}</text></view>
     <scroll-view class="checkout-items" scroll-y>
       <view wx:for="{{checkoutLines}}" wx:key="id" class="checkout-item"><view class="checkout-item-main"><view class="checkout-item-name">{{item.name}}</view><view class="checkout-item-spec">{{item.brand}} · {{item.capacity}} · ×{{item.quantity}}</view></view><text class="checkout-item-total">¥{{item.subtotal}}</text></view>
     </scroll-view>
-    <textarea class="field address-field" placeholder="请填写收货地址" data-field="checkoutAddress" bindinput="updateField" value="{{checkoutAddress}}" />
+    <picker mode="selector" range="{{couponOptions}}" value="{{couponIndex}}" bindchange="selectCoupon"><view class="coupon-selector"><text>优惠券</text><text>{{couponOptions[couponIndex]}} ›</text></view></picker>
+    <view class="coupon-rule-tip">大桶水券仅抵扣“大桶水”品类；每单限用一张</view>
+    <view class="checkout-discount">优惠 ¥{{discountTotal}}<text>应付 ¥{{payableTotal}}</text></view>
+    <view class="coupon-rule-tip">交付方式：到店提货，下单后凭核销码领取</view>
+    <textarea class="field address-field" placeholder="联系地址（选填）" data-field="checkoutAddress" bindinput="updateField" value="{{checkoutAddress}}" />
     <input class="field note-field" placeholder="备注（选填）" data-field="orderNote" bindinput="updateField" value="{{orderNote}}" />
-    <view class="checkout-actions"><button class="secondary-btn" bindtap="cancelCheckout">再看看</button><button class="primary-btn" bindtap="placeOrder">提交订单</button></view>
+    <view class="checkout-actions"><button class="secondary-btn" disabled="{{submitting}}" bindtap="cancelCheckout">再看看</button><button class="primary-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="placeOrder">提交订单</button></view>
   </view></view>
 </view>

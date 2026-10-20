@@ -15,6 +15,8 @@ import {
   ShoppingCart,
   Palette,
   ClipboardList,
+  Ticket,
+  Monitor,
 } from "lucide-react";
 
 const navigation = [
@@ -22,7 +24,9 @@ const navigation = [
   ["商品库存", Package],
   ["采购记录", ShoppingCart],
   ["客户管理", Users],
+  ["电脑订单", Monitor],
   ["小程序订单", ClipboardList],
+  ["优惠券管理", Ticket],
   ["配送订单", Truck],
   ["操作日志", ScrollText],
   ["销售明细", BarChart3],
@@ -53,7 +57,7 @@ export default function Sidebar({
       <div className="store-switch">
         <span className="store-avatar">水</span>
         <span>
-          <b>清泉水站</b>
+          <b>农丰水站</b>
           <small>总店 · 管理后台</small>
         </span>
         <ChevronDown size={15} />
