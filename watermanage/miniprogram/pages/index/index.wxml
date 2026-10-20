@@ -23,7 +23,7 @@
         <view class="product-info">
           <view class="product-name">{{item.name}}</view><view class="product-spec">{{item.capacity}} · {{item.package_type}}</view>
           <view class="product-bottom"><view class="product-price"><text class="price-symbol">¥</text><text class="price">{{item.sell_price}}</text><text class="unit"> / {{item.package_type}}</text></view>
-            <view wx:if="{{item.available}}" class="stepper"><button class="step-btn" data-id="{{item.id}}" data-delta="-1" bindtap="changeQuantity">−</button><text class="quantity">{{cart[item.id] || 0}}</text><button class="step-btn plus" data-id="{{item.id}}" data-delta="1" bindtap="changeQuantity">＋</button></view>
+            <view wx:if="{{item.available}}" class="stepper"><view class="step-btn" hover-class="step-btn-hover" data-id="{{item.id}}" data-delta="-1" bindtap="changeQuantity">−</view><text class="quantity">{{cart[item.id] || 0}}</text><view class="step-btn plus" hover-class="step-btn-hover" data-id="{{item.id}}" data-delta="1" bindtap="changeQuantity">＋</view></view>
             <view wx:else class="sold-out">暂时缺货</view>
           </view>
           <view class="stock-tip">可售 {{item.stock}} {{item.package_type}}</view>

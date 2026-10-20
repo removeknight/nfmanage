@@ -5,7 +5,7 @@ page {
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 }
 
-.page { padding: 0 28rpx 36rpx; }
+.page { width: 100%; min-width: 0; box-sizing: border-box; padding: 0 28rpx 36rpx; }
 .topbar { height: 112rpx; display: flex; align-items: center; justify-content: space-between; }
 .brand-title { color: #20352f; font-size: 35rpx; font-weight: 700; letter-spacing: 1rpx; }
 .brand-sub { margin-top: 4rpx; color: #87938e; font-size: 21rpx; }
@@ -19,7 +19,7 @@ page {
 .hero-copy { position: relative; z-index: 1; margin-top: 9rpx; color: #d8e5df; font-size: 22rpx; }
 .hero-bubbles { position: absolute; z-index: 1; right: 24rpx; bottom: 26rpx; color: #ffffff69; font-size: 21rpx; letter-spacing: 7rpx; transform: rotate(-12deg); }
 
-.category-bar { margin: 22rpx -28rpx 22rpx; padding: 0 28rpx; white-space: nowrap; }
+.category-bar { width: 100%; box-sizing: border-box; margin: 22rpx 0; white-space: nowrap; }
 .category-chip { display: inline-block; margin-right: 12rpx; padding: 12rpx 22rpx; border: 1rpx solid #e7ece8; border-radius: 26rpx; background: #fff; color: #687770; font-size: 21rpx; }
 .category-chip.selected { border-color: #356e60; background: #356e60; color: #fff; }
 .empty { padding: 80rpx 0; color: #87938e; text-align: center; font-size: 24rpx; }
@@ -29,23 +29,23 @@ page {
 .section-note { margin-left: auto; color: #9aa49f; font-size: 19rpx; font-weight: 400; }
 .brand-section { margin-bottom: 23rpx; }
 .brand-heading { margin: 0 0 10rpx 4rpx; color: #73817b; font-size: 21rpx; font-weight: 600; }
-.product-card { display: flex; align-items: center; box-sizing: border-box; margin-bottom: 12rpx; padding: 16rpx; border: 1rpx solid #e9eeeb; border-radius: 18rpx; background: #fff; }
+.product-card { display: flex; width: 100%; min-width: 0; align-items: center; box-sizing: border-box; margin-bottom: 12rpx; padding: 16rpx; border: 1rpx solid #e9eeeb; border-radius: 18rpx; background: #fff; }
 .product-visual { display: flex; flex: none; width: 122rpx; height: 122rpx; flex-direction: column; align-items: center; justify-content: center; border-radius: 14rpx; background: #edf4f0; color: #648d7f; }
 .water-glyph { font-size: 43rpx; font-weight: 600; line-height: 1.1; }
 .capacity-label { margin-top: 6rpx; color: #839a90; font-size: 17rpx; }
-.product-info { min-width: 0; flex: 1; margin-left: 17rpx; }
+.product-info { width: 0; min-width: 0; flex: 1; margin-left: 17rpx; }
 .product-name { overflow: hidden; color: #283a34; font-size: 25rpx; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .product-spec { margin-top: 6rpx; color: #929d97; font-size: 19rpx; }
-.product-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8rpx; margin-top: 16rpx; }
-.product-price { flex: none; white-space: nowrap; }
+.product-bottom { position: relative; width: 100%; min-height: 48rpx; box-sizing: border-box; margin-top: 16rpx; }
+.product-price { box-sizing: border-box; padding-right: 168rpx; line-height: 48rpx; white-space: nowrap; }
 .price-symbol { color: #bc6a4c; font-size: 20rpx; font-weight: 600; }
 .price { margin-left: 2rpx; color: #bc6a4c; font-size: 29rpx; font-weight: 700; }
 .unit { color: #929d97; font-size: 17rpx; }
-.stepper { display: flex; flex: none; align-items: center; gap: 4rpx; }
-.step-btn { display: flex; flex: none; align-items: center; justify-content: center; box-sizing: border-box; width: 46rpx; min-width: 46rpx; height: 46rpx; margin: 0; padding: 0; border: 1rpx solid #dce6e1; border-radius: 50%; background: #fff; color: #477568; font-size: 25rpx; line-height: 1; }
-.step-btn.plus { border-color: #356e60; background: #356e60; color: #fff; }
-.step-btn::after { border: 0; }
-.quantity { min-width: 32rpx; color: #34443e; text-align: center; font-size: 21rpx; }
+.stepper { position: absolute; top: 0; right: 0; width: 156rpx; height: 48rpx; }
+.step-btn { position: absolute; top: 0; left: 0; display: block; box-sizing: border-box; width: 48rpx; height: 48rpx; padding: 0; border: 1rpx solid #dce6e1; border-radius: 24rpx; background: #fff; color: #477568; font-size: 24rpx; line-height: 46rpx; text-align: center; }
+.step-btn.plus { right: 0; left: auto; border-color: #356e60; background: #356e60; color: #fff; }
+.step-btn-hover { opacity: .72; transform: scale(.96); }
+.quantity { position: absolute; top: 0; left: 48rpx; display: block; width: 60rpx; height: 48rpx; color: #34443e; font-size: 21rpx; line-height: 48rpx; text-align: center; }
 .stock-tip { margin-top: 6rpx; color: #9ca7a2; font-size: 17rpx; text-align: right; }
 .sold-out { color: #929d97; font-size: 19rpx; }
 .bottom-space { height: 112rpx; }
