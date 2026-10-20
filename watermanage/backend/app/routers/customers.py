@@ -11,7 +11,13 @@ router = APIRouter(prefix="/api/customers", tags=["客户"])
 
 @router.get("")
 def list_customers(db: Session = Depends(get_db)):
-    return db.scalars(select(Customer).order_by(Customer.id.desc())).all()
+    rows = db.scalars(select(Customer).order_by(Customer.id.desc())).all()
+    return [_customer_info(row) for row in rows]
+
+
+def _customer_info(row: Customer):
+    return {"id": row.id, "name": row.name, "kind": row.kind, "phone": row.phone,
+            "address": row.address, "note": row.note, "created_at": row.created_at}
 
 
 @router.post("")
@@ -20,4 +26,4 @@ def create_customer(data: CustomerIn, db: Session = Depends(get_db)):
     db.add(row)
     db.commit()
     db.refresh(row)
-    return row
+    return _customer_info(row)

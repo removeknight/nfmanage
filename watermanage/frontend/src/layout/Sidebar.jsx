@@ -14,6 +14,7 @@ import {
   Home,
   ShoppingCart,
   Palette,
+  ClipboardList,
 } from "lucide-react";
 
 const navigation = [
@@ -21,6 +22,7 @@ const navigation = [
   ["商品库存", Package],
   ["采购记录", ShoppingCart],
   ["客户管理", Users],
+  ["小程序订单", ClipboardList],
   ["配送订单", Truck],
   ["操作日志", ScrollText],
   ["销售明细", BarChart3],
@@ -29,6 +31,7 @@ export default function Sidebar({
   page,
   setPage,
   pending,
+  miniPending,
   mobileOpen,
   setMobileOpen,
 }) {
@@ -70,6 +73,9 @@ export default function Sidebar({
             <span>{label}</span>
             {label === "配送订单" && pending > 0 && (
               <i className="nav-count">{pending}</i>
+            )}
+            {label === "小程序订单" && miniPending > 0 && (
+              <i className="nav-count">{miniPending}</i>
             )}
           </button>
         ))}

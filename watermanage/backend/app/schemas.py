@@ -49,3 +49,21 @@ class PriceIn(BaseModel):
 class StatusIn(BaseModel):
     status: str
     operator: str = "管理员"
+
+
+class MiniBindIn(BaseModel):
+    code: str
+    name: str = Field(min_length=1, max_length=120)
+    phone: str = Field(default="", max_length=40)
+    address: str = Field(default="", max_length=300)
+
+
+class MiniOrderLineIn(BaseModel):
+    product_id: int
+    quantity: int = Field(gt=0, le=999)
+
+
+class MiniOrderIn(BaseModel):
+    items: list[MiniOrderLineIn] = Field(min_length=1, max_length=50)
+    address: str = Field(min_length=1, max_length=300)
+    note: str = Field(default="", max_length=300)

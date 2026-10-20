@@ -69,9 +69,16 @@ POSTGRES_PASSWORD=${password}
 APP_PORT=8080
 CORS_ORIGINS=*
 DATABASE_URL=postgresql+psycopg://watermanage:${password}@127.0.0.1:5432/watermanage
+WECHAT_APP_ID=
+WECHAT_APP_SECRET=
+MERCHANT_API_KEY=$(openssl rand -hex 32)
 EOF
   chmod 600 .env
   echo "已生成 .env 和随机数据库密码（权限 0600）。请安全保管该文件。"
+fi
+
+if ! grep -q '^MERCHANT_API_KEY=' .env; then
+  printf 'MERCHANT_API_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
 fi
 
 if ! grep -q '^DATABASE_URL=' .env; then
@@ -88,6 +95,9 @@ source .env
 set +a
 export DATABASE_URL="${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER:-watermanage}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB:-watermanage}}"
 export CORS_ORIGINS="${CORS_ORIGINS:-*}"
+export WECHAT_APP_ID="${WECHAT_APP_ID:-}"
+export WECHAT_APP_SECRET="${WECHAT_APP_SECRET:-}"
+export MERCHANT_API_KEY="${MERCHANT_API_KEY:-}"
 chmod 600 .env
 
 # Remove only the old app containers created by this project version. Keep the
@@ -139,7 +149,7 @@ cat > /etc/supervisor/conf.d/watermanage.conf <<EOF
 [program:watermanage-api]
 command=${APP_DIR}/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 directory=${APP_DIR}/backend
-environment=DATABASE_URL="${DATABASE_URL}",CORS_ORIGINS="${CORS_ORIGINS}"
+environment=DATABASE_URL="${DATABASE_URL}",CORS_ORIGINS="${CORS_ORIGINS}",WECHAT_APP_ID="${WECHAT_APP_ID}",WECHAT_APP_SECRET="${WECHAT_APP_SECRET}",MERCHANT_API_KEY="${MERCHANT_API_KEY}"
 autostart=true
 autorestart=true
 startsecs=5

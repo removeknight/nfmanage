@@ -34,3 +34,8 @@
   width: 54px;
   height: 64px;
 }
+.mini-order-line { padding: 3px 0 7px; line-height: 1.45; }
+.merchant-login-panel { max-width: 720px; margin: 30px auto; }
+.merchant-login-form { display: flex; align-items: center; gap: 12px; padding: 22px 28px; color: var(--muted); }
+.merchant-login-form input { flex: 1; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); }
+.merchant-login-error { margin: 0 28px 22px; color: #c34b4b; }

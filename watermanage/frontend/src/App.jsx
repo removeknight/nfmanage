@@ -13,6 +13,7 @@ import CustomerForm from "./features/customers/CustomerForm";
 import TransactionForm from "./features/transactions/TransactionForm";
 import SalesPage from "./features/sales/SalesPage";
 import PurchasePage from "./features/purchases/PurchasePage";
+import MiniOrderPage from "./features/orders/MiniOrderPage";
 
 const initialData = {
   dashboard: {},
@@ -23,6 +24,7 @@ const initialData = {
   transactions: [],
   logs: [],
   sales: [],
+  miniOrders: [],
 };
 function formValues(event) {
   return Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -40,6 +42,7 @@ export default function App() {
     () => localStorage.getItem("watermanage-theme") || "ocean",
   );
   const [formReset, setFormReset] = useState(0);
+  const [merchantToken, setMerchantToken] = useState(() => sessionStorage.getItem("watermanage-merchant-token") || "");
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("watermanage-theme", theme);
@@ -65,6 +68,7 @@ export default function App() {
       api.logs(),
       api.sales(),
     ]);
+    const miniOrders = merchantToken ? await api.miniOrders(merchantToken) : [];
     setData({
       dashboard,
       products,
@@ -74,8 +78,9 @@ export default function App() {
       transactions,
       logs,
       sales,
+      miniOrders,
     });
-  }, []);
+  }, [merchantToken]);
   useEffect(() => {
     refresh().catch((error) => setToast(`${error.message} · 请检查服务连接`));
   }, [refresh]);
@@ -169,6 +174,36 @@ export default function App() {
       setToast(error.message);
     }
   }
+  async function confirmMiniOrder(order) {
+    if (!window.confirm(`确认订单 ${order.order_no}？确认后将正式扣减库存并生成配送任务。`)) return;
+    try {
+      await api.confirmMiniOrder(order.id, merchantToken);
+      await refresh();
+      setToast("订单已确认，库存已扣减并生成配送任务");
+    } catch (error) {
+      setToast(error.message);
+    }
+  }
+  async function rejectMiniOrder(order) {
+    if (!window.confirm(`拒绝订单 ${order.order_no} 并释放预留库存？`)) return;
+    try {
+      await api.rejectMiniOrder(order.id, merchantToken);
+      await refresh();
+      setToast("订单已拒绝，预留库存已释放");
+    } catch (error) {
+      setToast(error.message);
+    }
+  }
+  async function loginMerchant(password) {
+    const result = await api.merchantLogin(password);
+    sessionStorage.setItem("watermanage-merchant-token", result.token);
+    setMerchantToken(result.token);
+  }
+  function logoutMerchant() {
+    sessionStorage.removeItem("watermanage-merchant-token");
+    setMerchantToken("");
+    setData((current) => ({ ...current, miniOrders: [] }));
+  }
   function openModal(name) {
     setModal(name);
     setQuery("");
@@ -211,6 +246,9 @@ export default function App() {
         updateDelivery={updateDelivery}
       />
     ),
+    小程序订单: (
+      <MiniOrderPage orders={data.miniOrders} merchantToken={merchantToken} loginMerchant={loginMerchant} logoutMerchant={logoutMerchant} confirmOrder={confirmMiniOrder} rejectOrder={rejectMiniOrder} refresh={() => refresh().catch((error) => setToast(error.message))} />
+    ),
     操作日志: (
       <LogPage
         logs={data.logs}
@@ -248,6 +286,7 @@ export default function App() {
         page={page}
         setPage={setPage}
         pending={data.dashboard.pending_deliveries}
+        miniPending={data.miniOrders.filter((order) => order.status === "待商家确认").length}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
       />

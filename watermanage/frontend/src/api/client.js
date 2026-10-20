@@ -31,6 +31,10 @@ export const api = {
   deliveries: () => request("/api/deliveries"),
   transactions: () => request("/api/transactions"),
   sales: () => request("/api/sales"),
+  merchantLogin: (password) => send("/api/mini/merchant/session", { password }),
+  miniOrders: (token) => request("/api/mini/merchant/orders", { headers: { Authorization: `Bearer ${token}` } }),
+  confirmMiniOrder: (id, token) => request(`/api/mini/merchant/orders/${id}/confirm`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({}) }),
+  rejectMiniOrder: (id, token) => request(`/api/mini/merchant/orders/${id}/reject`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({}) }),
   salesOverview: (startDate, endDate) =>
     request(`/api/sales/overview?start_date=${startDate}&end_date=${endDate}`),
   purchases: (filters = {}) => {

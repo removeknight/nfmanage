@@ -25,8 +25,9 @@ def apply_stock(
     )
     if not product:
         raise HTTPException(404, "在售商品不存在")
-    if kind == "sale" and product.stock < data.quantity:
-        raise HTTPException(400, f"库存不足，当前库存 {product.stock}")
+    available = product.stock - product.reserved_stock
+    if kind == "sale" and available < data.quantity:
+        raise HTTPException(400, f"可售库存不足，当前可售库存 {available}")
 
     before_stock, before_cost = product.stock, product.average_cost
     if kind == "purchase":
