@@ -1,0 +1,15 @@
+.reading-page { padding: 30rpx 26rpx 60rpx; }
+.reading-title { font-size: 1.375rem; font-weight: 700; }
+.reading-copy { margin-top: 12rpx; color: #56685f; font-size: .9375rem; line-height: 1.65; overflow-wrap: break-word; }
+.reading-options { display: block; margin: 26rpx 0; }
+.reading-option { display: flex; align-items: center; gap: 20rpx; min-height: 3.75rem; padding: 24rpx; margin-bottom: 16rpx; border: 2rpx solid #e1e9e3; border-radius: 16rpx; background: #fff; }
+.reading-option.selected { border-color: #356e60; background: #edf4ef; }
+.option-text { flex: 1; min-width: 0; }
+.option-title { font-size: 1.125rem; font-weight: 600; }
+.reading-option radio { flex: none; }
+.preview-card { padding: 28rpx; border: 1rpx solid #e1e9e3; border-radius: 18rpx; background: #fff; }
+.preview-caption { margin-bottom: 22rpx; color: #56685f; font-size: .9375rem; }
+.preview-title { font-size: 1.25rem; font-weight: 600; }
+.preview-price { margin: 22rpx 0; color: #a64e32; font-size: 1.375rem; font-weight: 700; overflow-wrap: anywhere; }
+.preview-price text { font-size: .9375rem; color: #56685f; font-weight: 400; }
+.preview-action { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 16rpx 24rpx; border-radius: 14rpx; background: #356e60; color: #fff; font-size: 1.125rem; text-align: center; }

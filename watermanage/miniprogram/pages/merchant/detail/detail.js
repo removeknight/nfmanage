@@ -1,6 +1,7 @@
+const { readingPage } = require('../../../utils/reading')
 const { request, checkRole, showError, confirm, orderView } = require('../../../utils/merchant')
 const { startPolling, stopPolling } = require('../../../utils/polling')
-Page({
+readingPage({
   data: { order: null, manager: false, busy: false, loading: true, error: '' },
   onLoad(options) { this._id = Number(options.id) },
   onShow() { startPolling(this, this.load) }, onHide() { stopPolling(this) }, onUnload() { stopPolling(this) },

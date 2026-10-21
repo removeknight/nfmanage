@@ -1,6 +1,8 @@
-<view class="me-page">
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="me-page {{readingLayoutClass}}">
   <view class="identity-card"><view class="avatar">{{avatarText}}</view><view class="identity-info"><view class="identity-name">{{customer ? customer.name : '欢迎来到农丰水站'}}</view><view class="identity-phone">{{customer ? customer.phone : '绑定账号，领取新用户优惠券'}}</view></view><view class="profile-link" bindtap="goProfile">{{customer ? '修改资料' : '去绑定'}} ›</view></view>
   <view wx:if="{{customer}}" class="address-card"><text class="muted">常用地址</text><view>{{customer.address || '暂未填写，可在资料中补充'}}</view></view>
+  <view class="orders-entry" bindtap="goReading"><view class="entry-main"><view class="entry-title">字体大小</view><view class="entry-copy">{{readingLabel}} · 点此调整</view></view><text>›</text></view>
   <view class="orders-entry" bindtap="goOrders"><view><view class="entry-title">我的订单</view><view class="entry-copy">查看订单明细与提货核销码</view></view><text>›</text></view>
   <view wx:if="{{customer.is_merchant}}" class="orders-entry" bindtap="goMerchant"><view><view class="entry-title">商家工作台 <text class="muted">· {{customer.role_label}}</text></view><view class="entry-copy">订单核销、库存与日常经营</view></view><text>›</text></view>
   <view class="coupon-heading">我的优惠券 <text>{{availableCount}} 张可用 · 自动更新</text></view>

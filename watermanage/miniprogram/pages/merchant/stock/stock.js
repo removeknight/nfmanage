@@ -1,6 +1,7 @@
+const { readingPage } = require('../../../utils/reading')
 const { request, checkRole, showError } = require('../../../utils/merchant')
 const { startPolling, stopPolling } = require('../../../utils/polling')
-Page({
+readingPage({
   data: { products: [], displayed: [], query: '', lowOnly: false, loading: true, error: '' },
   onShow() { startPolling(this, this.load) }, onHide() { stopPolling(this) }, onUnload() { stopPolling(this) },
   onPullDownRefresh() { this.load().finally(() => wx.stopPullDownRefresh()) },

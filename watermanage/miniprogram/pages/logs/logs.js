@@ -1,7 +1,8 @@
+const { readingPage } = require('../../utils/reading')
 // logs.js
 const util = require('../../utils/util.js')
 
-Page({
+readingPage({
   data: {
     logs: []
   },

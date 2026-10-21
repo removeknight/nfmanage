@@ -1,3 +1,4 @@
+const { refreshReadingPages } = require('./utils/reading')
 App({
   globalData: {
     // Cloud development endpoint. Configure an HTTPS domain before publishing.
@@ -7,6 +8,7 @@ App({
     miniToken: '',
     customer: null,
   },
+  onShow() { refreshReadingPages() },
   onLaunch() {
     let appId = ''
     try { appId = wx.getAccountInfoSync().miniProgram.appId } catch (_) {}

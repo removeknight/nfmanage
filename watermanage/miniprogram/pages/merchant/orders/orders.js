@@ -1,6 +1,7 @@
+const { readingPage } = require('../../../utils/reading')
 const { request, checkRole, showError, orderView } = require('../../../utils/merchant')
 const { startPolling, stopPolling } = require('../../../utils/polling')
-Page({
+readingPage({
   data: { status: '待提货', statuses: ['待提货', '已核销', '已取消', '全部'], phone: '', lookup: '', orders: [], candidates: null, loading: true, searching: false, error: '' },
   onShow() { startPolling(this, this.load) },
   onHide() { stopPolling(this) }, onUnload() { stopPolling(this) },

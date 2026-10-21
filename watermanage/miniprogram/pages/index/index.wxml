@@ -1,4 +1,5 @@
-<view class="page">
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="page {{readingLayoutClass}}">
   <view class="topbar">
     <view><view class="brand-title">农丰水站</view><view class="brand-sub">好水随时到家</view></view>
     <view class="profile" bindtap="goMe"><text class="profile-icon">◯</text><text>我的</text></view>
@@ -17,17 +18,15 @@
     <view wx:for="{{item.brands}}" wx:key="brand" class="brand-section">
       <view class="brand-heading">{{item.brand}}</view>
       <view wx:for="{{item.products}}" wx:key="id" class="product-card">
-        <view class="product-visual">
-          <text class="water-glyph">水</text><text class="capacity-label">{{item.capacity}}</text>
+        <view class="product-main">
+          <view class="product-visual"><text class="water-glyph">水</text><text class="capacity-label">{{item.capacity}}</text></view>
+          <view class="product-info"><view class="product-name">{{item.name}}</view><view class="product-spec">{{item.capacity}} · {{item.package_type}}</view></view>
         </view>
-        <view class="product-info">
-          <view class="product-name">{{item.name}}</view><view class="product-spec">{{item.capacity}} · {{item.package_type}}</view>
-          <view class="product-bottom"><view class="product-price"><text class="price-symbol">¥</text><text class="price">{{item.sell_price}}</text><text class="unit"> / {{item.package_type}}</text></view>
-            <view wx:if="{{item.available}}" class="stepper"><view class="step-btn" hover-class="step-btn-hover" data-id="{{item.id}}" data-delta="-1" bindtap="changeQuantity">−</view><text class="quantity">{{cart[item.id] || 0}}</text><view class="step-btn plus" hover-class="step-btn-hover" data-id="{{item.id}}" data-delta="1" bindtap="changeQuantity">＋</view></view>
-            <view wx:else class="sold-out">暂时缺货</view>
-          </view>
-          <view class="stock-tip">可售 {{item.stock}} {{item.package_type}}</view>
+        <view class="product-bottom"><view class="product-price"><text class="price-symbol">¥</text><text class="price">{{item.sell_price}}</text><text class="unit"> / {{item.package_type}}</text></view>
+          <view wx:if="{{item.available}}" class="stepper"><view class="step-btn" aria-role="button" aria-label="减少数量" hover-class="step-btn-hover" data-id="{{item.id}}" data-delta="-1" bindtap="changeQuantity">−</view><text class="quantity">{{cart[item.id] || 0}}</text><view class="step-btn plus" aria-role="button" aria-label="增加数量" hover-class="step-btn-hover" data-id="{{item.id}}" data-delta="1" bindtap="changeQuantity">＋</view></view>
+          <view wx:else class="sold-out">暂时缺货</view>
         </view>
+        <view class="stock-tip">可售 {{item.stock}} {{item.package_type}}</view>
       </view>
     </view>
   </view>
@@ -36,9 +35,9 @@
   <view wx:if="{{cartCount > 0}}" class="cart-bar"><view class="cart-summary"><view><text class="cart-count">{{cartCount}}</text><text class="cart-label">件商品</text></view><text class="cart-total">¥{{cartTotal}}</text></view><button class="checkout-btn" bindtap="openCheckout">去结算</button></view>
 
   <view wx:if="{{showCheckout}}" class="modal-mask"><view class="modal-card checkout-modal"><view class="modal-title">确认订单</view><view class="checkout-summary">{{checkoutLines.length}} 种商品 · {{cartCount}} 件 · <text class="checkout-total">¥{{cartTotal}}</text></view>
-    <scroll-view class="checkout-items" scroll-y>
+    <view class="checkout-items">
       <view wx:for="{{checkoutLines}}" wx:key="id" class="checkout-item"><view class="checkout-item-main"><view class="checkout-item-name">{{item.name}}</view><view class="checkout-item-spec">{{item.brand}} · {{item.capacity}} · ×{{item.quantity}}</view></view><text class="checkout-item-total">¥{{item.subtotal}}</text></view>
-    </scroll-view>
+    </view>
     <picker mode="selector" range="{{couponOptions}}" value="{{couponIndex}}" bindchange="selectCoupon"><view class="coupon-selector"><text>优惠券</text><text>{{couponOptions[couponIndex]}} ›</text></view></picker>
     <view class="coupon-rule-tip">大桶水券仅抵扣“大桶水”品类；每单限用一张</view>
     <view class="checkout-discount">优惠 ¥{{discountTotal}}<text>应付 ¥{{payableTotal}}</text></view>

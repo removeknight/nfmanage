@@ -1,4 +1,5 @@
-<view class="merchant-page">
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="merchant-page {{readingLayoutClass}}">
   <view class="card"><view class="section-title">快速核销</view><view class="muted" style="margin-bottom:20rpx">核销码 6 位，或手机尾号后 4 位</view><view class="row search" style="margin-bottom:0"><input type="number" maxlength="6" value="{{lookup}}" data-field="lookup" bindinput="input" bindconfirm="lookup" placeholder="输入数字查单"/><view class="primary {{searching ? 'disabled' : ''}}" bindtap="lookup">查单</view></view></view>
   <block wx:if="{{candidates !== null}}"><view class="row section-title"><text>匹配 {{candidates.length}} 笔订单</text><text class="link" bindtap="clearCandidates">收起</text></view><view wx:if="{{!candidates.length}}" class="empty">未找到待提货订单</view><view wx:for="{{candidates}}" wx:key="id" class="card" data-id="{{item.id}}" bindtap="detail"><view class="row"><view>{{item.contact_name}} · {{item.contact_phone}}</view><view class="status">{{item.status}}</view></view><view class="line">核销码 {{item.pickup_code}} · ¥{{item.totalText}}</view><view class="order-no">{{item.order_no}} ›</view></view><view class="divider"/></block>
   <view class="title">小程序订单</view><view class="subtitle">默认展示待提货订单，列表自动更新</view>

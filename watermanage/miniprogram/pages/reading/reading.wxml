@@ -1,0 +1,18 @@
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="reading-page {{readingLayoutClass}}">
+  <view class="reading-title">字体大小</view>
+  <view class="reading-copy">选择后立即生效，客户页面和商家工作台都会同步调整。下次打开仍会保留。</view>
+  <radio-group bindchange="changeSize" class="reading-options">
+    <label wx:for="{{options}}" wx:key="value" class="reading-option {{readingMode === item.value ? 'selected' : ''}}">
+      <view class="option-text"><view class="option-title">{{item.label}}</view><view class="reading-copy">{{item.description}}</view></view>
+      <radio value="{{item.value}}" checked="{{readingMode === item.value}}" color="#356e60"/>
+    </label>
+  </radio-group>
+  <view class="preview-card">
+    <view class="preview-caption">当前字号预览</view>
+    <view class="preview-title">饮用天然水</view>
+    <view class="reading-copy">商品名称、订单明细和按钮会一起变大，长文字自动换行。</view>
+    <view class="preview-price">¥12.00 <text>/ 桶</text></view>
+    <view class="preview-action">确认提货</view>
+  </view>
+</view>

@@ -1,4 +1,5 @@
-<view class="page">
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="page {{readingLayoutClass}}">
   <view wx:if="{{loading}}" class="empty">正在加载订单…</view>
   <view wx:elif="{{!orders.length}}" class="empty-state"><view class="empty-icon">水</view><view class="empty-title">还没有订单</view><view class="empty-copy">去挑选几件喜欢的商品吧</view><button class="shop-btn" bindtap="goShop">去逛逛</button></view>
   <view wx:for="{{orders}}" wx:key="id" class="order-card">

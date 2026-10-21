@@ -1,6 +1,7 @@
+const { readingPage } = require('../../../utils/reading')
 const { request, checkRole, showError } = require('../../../utils/merchant')
 const { startPolling, stopPolling } = require('../../../utils/polling')
-Page({
+readingPage({
   data: { customer: null, manager: false, summary: {}, loading: true, webCode: '', generating: false },
   onShow() { startPolling(this, this.load) },
   onHide() { stopPolling(this) }, onUnload() { stopPolling(this) },

@@ -1,7 +1,8 @@
+const { readingPage } = require('../../utils/reading')
 const { request, saveCustomer } = require('../../utils/api')
 const { startPolling, stopPolling, syncCoupons } = require('../../utils/polling')
 const app = getApp()
-Page({
+readingPage({
   data: {
     products: [], grouped: [], categories: [], activeCategory: '全部',
     cart: {}, cartCount: 0, cartTotal: '0.00', loading: false, checkoutLines: [], customer: null,

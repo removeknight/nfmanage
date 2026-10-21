@@ -1,13 +1,13 @@
 page { background: #f6f7f5; color: #24342f; }
 .profile-page { box-sizing: border-box; width: 100%; padding: 42rpx 30rpx 100rpx; }
-.title { font-size: 34rpx; font-weight: 700; }
-.subtitle { margin: 12rpx 0 34rpx; color: #849189; font-size: 23rpx; }
+.title { font-size: 1.3125rem; font-weight: 700; }
+.subtitle { margin: 12rpx 0 34rpx; color: #56685f; font-size: 1rem; }
 .profile-form { padding: 28rpx; border: 1rpx solid #e5ece7; border-radius: 20rpx; background: #fff; }
 .form-group { display: block; margin-bottom: 30rpx; }
 .form-group:last-child { margin-bottom: 0; }
-.label { margin-bottom: 14rpx; font-size: 24rpx; color: #52655b; }
-.form-input { display: block; box-sizing: border-box; width: 100%; height: 92rpx; min-height: 92rpx; padding: 0 22rpx; border: 1rpx solid #e4ebe6; border-radius: 12rpx; background: #f8faf8; font-size: 27rpx; line-height: normal; }
-.form-address { display: block; box-sizing: border-box; width: 100%; height: 160rpx; min-height: 160rpx; padding: 20rpx 22rpx; border: 1rpx solid #e4ebe6; border-radius: 12rpx; background: #f8faf8; font-size: 27rpx; line-height: 1.5; }
-.save-btn { display: flex; align-items: center; justify-content: center; height: 88rpx; margin-top: 30rpx; border-radius: 44rpx; background: #356e60; color: #fff; font-size: 27rpx; line-height: 1; }
+.label { margin-bottom: 14rpx; font-size: 1rem; color: #52655b; }
+.form-input { display: block; box-sizing: border-box; width: 100%; height: 3.25rem; min-height: 44px; padding: 0 22rpx; border: 1rpx solid #c7d6cd; border-radius: 12rpx; background: #f8faf8; font-size: 1.125rem; line-height: normal; }
+.form-address { display: block; box-sizing: border-box; width: 100%; height: 7rem; min-height: 7rem; padding: .75rem 22rpx; border: 1rpx solid #c7d6cd; border-radius: 12rpx; background: #f8faf8; font-size: 1.125rem; line-height: 1.55; }
+.save-btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 2.75rem; height: auto; padding: .75rem 24rpx; margin-top: 30rpx; border-radius: 16rpx; background: #356e60; color: #fff; font-size: 1.125rem; line-height: 1.4; }
 .save-btn::after { border: none; }
-.test-hint { margin-top: 20rpx; color: #99a39d; font-size: 21rpx; text-align: center; }
+.test-hint { margin-top: 20rpx; color: #56685f; font-size: 0.9375rem; text-align: center; }

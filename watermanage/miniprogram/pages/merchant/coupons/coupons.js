@@ -1,5 +1,6 @@
+const { readingPage } = require('../../../utils/reading')
 const { request, checkRole, showError, confirm } = require('../../../utils/merchant')
-Page({
+readingPage({
   data: { customers: [], selected: null, query: '', title: '水站优惠券', amount: '', days: '7', usage: 'unrestricted', busy: false, loading: true, error: '' },
   onShow() { this.search() },
   input(event) { this.setData({ [event.currentTarget.dataset.field]: event.detail.value }); this._requestKey = '' },

@@ -1,4 +1,5 @@
-<view class="merchant-page">
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="merchant-page {{readingLayoutClass}}">
   <view class="title">商家成员</view>
   <view class="subtitle">店主和副店长负责经营管理；店员可以查单、核销、查看库存</view>
   <view class="notice">请在电脑后台「客户管理」中选择已绑定客户，设置商家身份。店主可授权副店长和店员，副店长可授权或停用店员。</view>

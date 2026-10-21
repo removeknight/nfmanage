@@ -1,2 +1,2 @@
 @import "../../../styles/merchant.wxss";
-.stock { font-size:40rpx; font-weight:600; text-align:right; }
+.stock { font-size: 1.4375rem; font-weight:600; text-align:right; }

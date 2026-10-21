@@ -1,10 +1,12 @@
-/**app.wxss**/
-.container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 200rpx 0;
-  box-sizing: border-box;
-} 
+/* rem follows each page's reading preference through page-meta. */
+page {
+  min-height: 100%;
+  background: #f6f7f5;
+  color: #24342f;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.55;
+}
+view, input, textarea, button, label { box-sizing: border-box; }
+button { white-space: normal; }
+.container { padding: 40rpx 26rpx; }

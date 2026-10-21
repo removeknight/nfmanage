@@ -1,6 +1,7 @@
+const { readingPage } = require('../../utils/reading')
 const { request, formatDate } = require('../../utils/api')
 const { startPolling, stopPolling } = require('../../utils/polling')
-Page({
+readingPage({
   data: { orders: [], loading: true, acting: false },
   onShow() { startPolling(this, this.loadOrders) },
   onHide() { stopPolling(this) },

@@ -1,10 +1,11 @@
-<view class="profile-page">
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="profile-page {{readingLayoutClass}}">
   <view class="title">{{editing ? '完善个人资料' : '欢迎来到农丰水站'}}</view>
   <view class="subtitle">{{editing ? '完善您的联系信息' : '绑定当前微信账号，查看订单和优惠券'}}</view>
   <view class="profile-form">
     <view class="form-group"><view class="label">怎么称呼您</view><input class="form-input" value="{{name}}" placeholder="请填写称呼" maxlength="120" data-field="name" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /></view>
     <view class="form-group"><view class="label">联系电话</view><input class="form-input" value="{{phone}}" placeholder="方便提货时联系" type="number" maxlength="20" data-field="phone" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /></view>
-    <view class="form-group"><view class="label">常用收货地址（选填）</view><textarea class="form-address" value="{{address}}" placeholder="小区、楼栋、门牌号" maxlength="300" data-field="address" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /></view>
+    <view class="form-group"><view class="label">常用联系地址（选填）</view><textarea class="form-address" value="{{address}}" placeholder="小区、楼栋、门牌号" maxlength="300" data-field="address" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /></view>
   </view>
   <button class="save-btn" loading="{{saving}}" disabled="{{saving}}" bindtap="save">{{editing ? '保存资料' : (mock ? '完成绑定' : '微信登录并绑定')}}</button>
   <view wx:if="{{mock && !editing}}" class="test-hint">当前为测试绑定模式</view>

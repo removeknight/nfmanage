@@ -1,4 +1,5 @@
-<view class="merchant-page">
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="merchant-page {{readingLayoutClass}}">
   <view class="row"><view class="title">商家工作台</view><view class="status">{{customer.role_label}}</view></view>
   <view class="subtitle">{{customer.name}}，今日经营一目了然</view>
   <view wx:if="{{loading}}" class="empty">正在加载…</view>

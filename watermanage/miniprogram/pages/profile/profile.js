@@ -1,5 +1,6 @@
+const { readingPage } = require('../../utils/reading')
 const { request, saveCustomer } = require('../../utils/api')
-Page({
+readingPage({
   data: { name: '', phone: '', address: '', editing: false, saving: false, mock: false },
   onLoad() {
     const app = getApp(), customer = app.globalData.customer

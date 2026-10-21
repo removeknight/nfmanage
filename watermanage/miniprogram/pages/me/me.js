@@ -1,6 +1,7 @@
+const { readingPage } = require('../../utils/reading')
 const { request, formatDate, saveCustomer } = require('../../utils/api')
 const { startPolling, stopPolling, syncCoupons, markCouponsRead } = require('../../utils/polling')
-Page({
+readingPage({
   data: { customer: null, avatarText: '水', coupons: [], displayedCoupons: [], activeStatus: '可使用', statuses: ['可使用', '已使用', '已过期'], availableCount: 0, loading: false },
   onShow() {
     this._readCouponsOnEntry = true
@@ -46,6 +47,7 @@ Page({
   selectStatus(event) { this.setData({ activeStatus: event.currentTarget.dataset.status }); this.filterCoupons() },
   filterCoupons() { this.setData({ displayedCoupons: this.data.coupons.filter(coupon => coupon.status === this.data.activeStatus) }) },
   goProfile() { wx.navigateTo({ url: '/pages/profile/profile' }) },
+  goReading() { wx.navigateTo({ url: '/pages/reading/reading' }) },
   goOrders() {
     if (!getApp().globalData.miniToken) return this.goProfile()
     wx.navigateTo({ url: '/pages/orders/orders' })

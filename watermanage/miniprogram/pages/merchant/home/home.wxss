@@ -1,5 +1,7 @@
 @import "../../../styles/merchant.wxss";
-.metrics { display:flex; gap:20rpx; }
-.metric { flex:1; width:0; min-width:0; }
-.metric-number { font-size:52rpx; color:#356e60; font-weight:600; margin-bottom:12rpx; }
+.metrics { display:flex; flex-wrap:wrap; gap:20rpx; }
+.metric { flex:1 1 240rpx; min-width:0; }
+.metric-number { font-size: 1.8125rem; color:#356e60; font-weight:600; margin-bottom:12rpx; }
 .menu .section-title { margin-bottom:8rpx; }
+.reading-large .metrics { flex-direction:column; }
+.reading-large .metric { flex:none; width:100%; }
