@@ -16,10 +16,13 @@ function storedIds(key) {
   const value = wx.getStorageSync(key)
   return Array.isArray(value) ? value : []
 }
+function couponKey(kind, customerId) {
+  return `miniCoupon${kind}:${getApp().globalData.authScope || 'legacy'}:${customerId}`
+}
 function markCouponsRead(coupons) {
   const app = getApp(), customer = app.globalData.customer
   if (customer) {
-    const readKey = `miniCouponRead:${customer.id}`, unreadKey = `miniCouponUnread:${customer.id}`
+    const readKey = couponKey('Read', customer.id), unreadKey = couponKey('Unread', customer.id)
     const known = coupons ? coupons.map(coupon => coupon.id) :
       app.globalData.couponCustomerId === customer.id ? app.globalData.couponIds || [] : []
     wx.setStorageSync(readKey, [...new Set([...storedIds(readKey), ...storedIds(unreadKey), ...known])])
@@ -35,8 +38,8 @@ function syncCoupons(coupons, notify) {
   const added = previous ? coupons.filter(coupon => !previous.includes(coupon.id) && coupon.status === '可使用') : []
   app.globalData.couponCustomerId = customer.id
   app.globalData.couponIds = coupons.map(coupon => coupon.id)
-  const read = new Set(storedIds(`miniCouponRead:${customer.id}`))
-  const unreadKey = `miniCouponUnread:${customer.id}`
+  const read = new Set(storedIds(couponKey('Read', customer.id)))
+  const unreadKey = couponKey('Unread', customer.id)
   const unread = new Set(storedIds(unreadKey).filter(id => !read.has(id)))
   // Polling may add unread reminders. Only an explicit visit marks them as read.
   coupons.forEach(coupon => {

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import hashlib
 import json
+import logging
 import secrets
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -21,6 +22,7 @@ from ..settings import settings
 
 router = APIRouter(prefix="/api/mini", tags=["小程序与商家"])
 CENT = Decimal("0.01")
+logger = logging.getLogger("uvicorn.error")
 
 
 def _wechat_openid(code):
@@ -31,11 +33,25 @@ def _wechat_openid(code):
     try:
         with urlopen(f"https://api.weixin.qq.com/sns/jscode2session?{params}", timeout=8) as response:
             data = json.loads(response.read())
-    except Exception:
-        raise HTTPException(502, "微信登录暂时不可用，请稍后重试")
-    if not data.get("openid"):
-        raise HTTPException(401, "微信登录凭据无效，请重新登录")
-    return data["openid"]
+    except Exception as error:
+        # Never log the request URL: its query contains AppSecret and the login code.
+        logger.warning("wechat_login_transport_error type=%s", type(error).__name__)
+        raise HTTPException(502, "服务器连接微信登录服务失败，请稍后重试") from None
+    if not isinstance(data, dict):
+        raise HTTPException(502, "微信登录服务返回格式异常，请稍后重试")
+    error_code = data.get("errcode", 0)
+    if error_code:
+        safe_code = str(error_code) if isinstance(error_code, int) else "unknown"
+        logger.warning("wechat_login_rejected errcode=%s", safe_code)
+        if error_code == 40029:
+            raise HTTPException(400, "微信登录凭据无效，请重新登录并核对 AppID（40029）")
+        if error_code == 45011:
+            raise HTTPException(429, "微信登录过于频繁，请稍后重试（45011）")
+        raise HTTPException(502, f"微信登录失败（错误码 {safe_code}），请联系管理员核对微信配置")
+    openid = data.get("openid")
+    if not isinstance(openid, str) or not openid or len(openid) > 80:
+        raise HTTPException(502, "微信登录响应缺少有效用户标识，请稍后重试")
+    return openid
 
 
 def _customer(authorization, db):
@@ -77,9 +93,18 @@ def _locked_order(db, order_id, customer_id=None):
     return order
 
 
+@router.get("/auth-config")
+def auth_config():
+    mode = settings.mini_auth_mode.strip().lower()
+    return {"mode": mode, "app_id": settings.wechat_app_id if mode == "wechat" else None,
+            "configured": mode == "mock" or (mode == "wechat" and bool(settings.wechat_app_id and settings.wechat_app_secret))}
+
+
 @router.post("/bind")
 def bind(data: MiniBindIn, db: Session = Depends(get_db)):
     mode = settings.mini_auth_mode.strip().lower()
+    if data.auth_mode and data.auth_mode != mode:
+        raise HTTPException(409, "小程序与服务器登录模式不一致，请联系管理员更新配置")
     device_key = None
     if mode == "mock":
         if not data.phone.strip():
@@ -87,6 +112,8 @@ def bind(data: MiniBindIn, db: Session = Depends(get_db)):
         device_key = data.device_key or secrets.token_urlsafe(32)
         openid = "test_" + hashlib.sha256(device_key.encode()).hexdigest()
     elif mode == "wechat":
+        if data.app_id and data.app_id != settings.wechat_app_id:
+            raise HTTPException(400, "小程序 AppID 与服务器配置不一致，请联系管理员核对")
         if not data.code:
             raise HTTPException(400, "缺少微信登录凭据")
         openid = _wechat_openid(data.code)
@@ -110,6 +137,7 @@ def bind(data: MiniBindIn, db: Session = Depends(get_db)):
     token = issue_session(db, customer)
     customer.mini_token_hash = hashlib.sha256(token.encode()).hexdigest()
     db.commit()
+    logger.info("mini_bind_success provider=%s customer_id=%s", mode, customer.id)
     return {"token": token, "auth_mode": mode, "device_key": device_key, "customer": _profile(customer, db)}
 
 

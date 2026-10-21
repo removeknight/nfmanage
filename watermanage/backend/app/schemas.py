@@ -55,6 +55,8 @@ class StatusIn(BaseModel):
 class MiniBindIn(BaseModel):
     model_config = {"str_strip_whitespace": True}
     code: str | None = None
+    app_id: str | None = Field(default=None, max_length=80)
+    auth_mode: Literal["mock", "wechat"] | None = None
     device_key: str | None = Field(default=None, min_length=32, max_length=128)
     name: str = Field(min_length=1, max_length=120)
     phone: str = Field(min_length=1, max_length=40)

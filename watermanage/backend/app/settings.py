@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     wechat_app_id: str = ""
     wechat_app_secret: str = ""
     mini_auth_mode: str = "wechat"
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    seed_demo_data: bool = False
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", str_strip_whitespace=True)
 
 settings = Settings()

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+umask 022
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP_DIR"
@@ -62,6 +63,7 @@ uv python install 3.13
 
 if [[ ! -f .env ]]; then
   password="$(openssl rand -hex 32)"
+  install -m 600 /dev/null .env
   cat > .env <<EOF
 POSTGRES_DB=watermanage
 POSTGRES_USER=watermanage
@@ -72,6 +74,8 @@ DATABASE_URL=postgresql+psycopg://watermanage:${password}@127.0.0.1:5432/waterma
 WECHAT_APP_ID=
 WECHAT_APP_SECRET=
 MINI_AUTH_MODE=wechat
+SEED_DEMO_DATA=false
+FRONTEND_MODE=static
 EOF
   chmod 600 .env
   echo "已生成 .env 和随机数据库密码（权限 0600）。请安全保管该文件。"
@@ -98,6 +102,9 @@ export CORS_ORIGINS="${CORS_ORIGINS:-*}"
 export WECHAT_APP_ID="${WECHAT_APP_ID:-}"
 export WECHAT_APP_SECRET="${WECHAT_APP_SECRET:-}"
 export MINI_AUTH_MODE="${MINI_AUTH_MODE:-wechat}"
+export SEED_DEMO_DATA="${SEED_DEMO_DATA:-false}"
+frontend_mode="${FRONTEND_MODE:-static}"
+[[ "$frontend_mode" == static || "$frontend_mode" == preview ]] || { echo "FRONTEND_MODE 仅支持 static 或 preview。" >&2; exit 1; }
 chmod 600 .env
 
 # Remove only the old app containers created by this project version. Keep the
@@ -126,7 +133,7 @@ file=/run/supervisor.sock
 chmod=0700
 
 [inet_http_server]
-port=0.0.0.0:9001
+port=127.0.0.1:9001
 
 [supervisord]
 logfile=/var/log/supervisor/supervisord.log
@@ -145,11 +152,12 @@ files=/etc/supervisor/conf.d/*.conf
 EOF
 
 npm_bin="$(command -v npm)"
+install -m 600 /dev/null /etc/supervisor/conf.d/watermanage.conf
 cat > /etc/supervisor/conf.d/watermanage.conf <<EOF
 [program:watermanage-api]
 command=${APP_DIR}/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 directory=${APP_DIR}/backend
-environment=DATABASE_URL="${DATABASE_URL}",CORS_ORIGINS="${CORS_ORIGINS}",WECHAT_APP_ID="${WECHAT_APP_ID}",WECHAT_APP_SECRET="${WECHAT_APP_SECRET}",MINI_AUTH_MODE="${MINI_AUTH_MODE}"
+environment=DATABASE_URL="${DATABASE_URL}",CORS_ORIGINS="${CORS_ORIGINS}",WECHAT_APP_ID="${WECHAT_APP_ID}",WECHAT_APP_SECRET="${WECHAT_APP_SECRET}",MINI_AUTH_MODE="${MINI_AUTH_MODE}",SEED_DEMO_DATA="${SEED_DEMO_DATA}"
 autostart=true
 autorestart=true
 startsecs=5
@@ -157,7 +165,9 @@ stopasgroup=true
 killasgroup=true
 stdout_logfile=/var/log/supervisor/watermanage-api.log
 stderr_logfile=/var/log/supervisor/watermanage-api-error.log
-
+EOF
+if [[ "$frontend_mode" == preview ]]; then
+cat >> /etc/supervisor/conf.d/watermanage.conf <<EOF
 [program:watermanage-frontend]
 command=${npm_bin} --prefix ${APP_DIR}/frontend run preview
 directory=${APP_DIR}/frontend
@@ -169,6 +179,7 @@ killasgroup=true
 stdout_logfile=/var/log/supervisor/watermanage-frontend.log
 stderr_logfile=/var/log/supervisor/watermanage-frontend-error.log
 EOF
+fi
 chmod 600 /etc/supervisor/conf.d/watermanage.conf
 
 cat > /etc/systemd/system/supervisord.service <<EOF
@@ -193,10 +204,20 @@ systemctl disable --now watermanage-api.service >/dev/null 2>&1 || true
 rm -f /etc/systemd/system/watermanage-api.service
 
 app_port="${APP_PORT:-8080}"
+if [[ "$frontend_mode" == static ]]; then
+  frontend_location="root ${APP_DIR}/frontend/dist;
+        index index.html;
+        try_files \$uri \$uri/ /index.html;"
+else
+  frontend_location='proxy_pass http://127.0.0.1:4173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
+fi
 cat > /etc/nginx/conf.d/watermanage.conf <<EOF
 server {
     listen ${app_port};
-    server_name _;
+    server_name ${SERVER_NAME:-_};
     location /api/ {
         proxy_pass http://127.0.0.1:8000/api/;
         proxy_set_header Host \$host;
@@ -210,10 +231,7 @@ server {
     }
 
     location / {
-        proxy_pass http://127.0.0.1:4173;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        ${frontend_location}
     }
 }
 EOF
@@ -224,13 +242,13 @@ systemctl enable supervisord
 if systemctl is-active --quiet supervisord; then systemctl restart supervisord; else systemctl start supervisord; fi
 supervisorctl -c /etc/supervisord.conf reread
 supervisorctl -c /etc/supervisord.conf update
-supervisorctl -c /etc/supervisord.conf restart watermanage-api watermanage-frontend
+supervisorctl -c /etc/supervisord.conf restart watermanage-api
+if [[ "$frontend_mode" == preview ]]; then supervisorctl -c /etc/supervisord.conf restart watermanage-frontend; fi
 systemctl enable nginx
 systemctl reload nginx || systemctl restart nginx
 
 if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld; then
   firewall-cmd --permanent --add-port="${app_port}/tcp"
-  firewall-cmd --permanent --add-port=9001/tcp
   firewall-cmd --reload
 fi
 
@@ -239,7 +257,7 @@ for attempt in $(seq 1 30); do
   sleep 2
 done
 curl --noproxy '*' -fsS "http://127.0.0.1:${app_port}/" >/dev/null
-echo "部署完成。FastAPI 和前端由系统级 Supervisor 管理；状态页监听 0.0.0.0:9001；Nginx 负责入口代理；PostgreSQL 由 Docker Compose 管理。访问端口：${app_port}"
+echo "部署完成。前端模式：${frontend_mode}；FastAPI 由 Supervisor 管理；管理端口仅监听 127.0.0.1:9001；Nginx 负责入口；PostgreSQL 由 Docker Compose 管理。访问端口：${app_port}"
 echo "首次开通商家：运行 bash deploy/merchant-bootstrap.sh，由指定店主在小程序『我的 → 商家授权』输入一次性授权码。"
 echo "电脑后台需要店主登录码：在小程序商家工作台生成，5 分钟内有效；登录后会话有效 8 小时。"
 echo "MINI_AUTH_MODE=mock 仅供测试；切换正式微信登录后，请重新为真实微信账号初始化店主。"

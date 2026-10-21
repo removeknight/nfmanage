@@ -14,7 +14,7 @@ from .services.auth import require_owner
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     with SessionLocal() as db:
-        if not db.scalar(select(Product.id).limit(1)):
+        if settings.seed_demo_data and not db.scalar(select(Product.id).limit(1)):
             db.add_all(
                 [
                     Product(name="饮用天然水", brand="农夫山泉", category="瓶装水", capacity="550ml", package_type="瓶", color="#e9544d", stock=186, warning_stock=40, average_cost=1.05, sell_price=2.0),
