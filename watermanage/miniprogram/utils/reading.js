@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'nfReadingSize'
 const READING_OPTIONS = [
   { value: 'system', label: '跟随微信', description: '使用微信「设置 → 通用 → 字体大小」的设置' },
+  { value: 'small', label: '小号', description: '缩小 12.5%，适合偏好紧凑显示的用户', scale: 0.875 },
   { value: 'standard', label: '标准', description: '清晰字号，适合日常浏览', scale: 1 },
   { value: 'large', label: '大号', description: '放大 20%，阅读更轻松', scale: 1.2 },
   { value: 'extra', label: '特大', description: '放大 40%，适合需要更大文字的用户', scale: 1.4 },
