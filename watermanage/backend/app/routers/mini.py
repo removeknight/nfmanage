@@ -7,13 +7,14 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models import Customer, CustomerCoupon, Delivery, MiniOrder, MiniOrderItem, Product
 from ..schemas import CouponGrantIn, CouponSettingIn, MiniBindIn, MiniOrderIn, MiniProfileIn, PickupCodeIn
 from ..services.audit import write_log
+from ..services.auth import identity_profile, issue_session, mini_customer, require_owner
 from ..services.coupons import coupon_info, coupon_settings, grant_welcome, iso_utc, utc_now
 from ..services.mini_orders import ACTIVE_ORDER_STATUSES, cancel_sale, record_sale
 from ..settings import settings
@@ -38,16 +39,14 @@ def _wechat_openid(code):
 
 
 def _customer(authorization, db):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "请先绑定账号")
-    digest = hashlib.sha256(authorization[7:].encode()).hexdigest()
-    row = db.scalar(select(Customer).where(Customer.mini_token_hash == digest, Customer.source == "mini"))
-    if not row:
-        raise HTTPException(401, "登录已过期，请重新绑定")
-    return row
+    return mini_customer(authorization, db)
 
 
-def _profile(customer):
+def _profile(customer, db):
+    return identity_profile(db, customer)
+
+
+def _contact(customer):
     return {"id": customer.id, "name": customer.name, "phone": customer.phone, "address": customer.address,
             "source": customer.source, "source_label": "小程序" if customer.source == "mini" else "线下电脑录入"}
 
@@ -81,34 +80,54 @@ def _locked_order(db, order_id, customer_id=None):
 @router.post("/bind")
 def bind(data: MiniBindIn, db: Session = Depends(get_db)):
     mode = settings.mini_auth_mode.strip().lower()
+    device_key = None
     if mode == "mock":
         if not data.phone.strip():
             raise HTTPException(400, "测试绑定需要联系电话")
-        openid = "test_" + hashlib.sha256(data.phone.strip().encode()).hexdigest()
+        device_key = data.device_key or secrets.token_urlsafe(32)
+        openid = "test_" + hashlib.sha256(device_key.encode()).hexdigest()
     elif mode == "wechat":
         if not data.code:
             raise HTTPException(400, "缺少微信登录凭据")
         openid = _wechat_openid(data.code)
     else:
         raise HTTPException(503, "小程序登录模式配置无效")
-    customer = db.scalar(select(Customer).where(Customer.wechat_openid == openid, Customer.source == "mini").with_for_update())
+    app_id = "mock" if mode == "mock" else settings.wechat_app_id
+    if db.get_bind().dialect.name == "postgresql":
+        # Serialize simultaneous first logins of the same identity, including welcome grants.
+        lock_key = int.from_bytes(hashlib.sha256((app_id + ":" + openid).encode()).digest()[:8], "big", signed=True)
+        db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+    customer = db.scalar(select(Customer).where(Customer.wechat_openid == openid, Customer.source == "mini",
+                         Customer.auth_app_id == app_id).with_for_update())
     if customer is None:
         customer = Customer(name=data.name.strip(), phone=data.phone.strip(), address=data.address.strip(),
-                            kind="个人", source="mini", wechat_openid=openid)
+                            kind="个人", source="mini", wechat_openid=openid, auth_provider=mode, auth_app_id=app_id)
         db.add(customer)
         db.flush()
     else:
         customer.name, customer.phone, customer.address = data.name.strip(), data.phone.strip(), data.address.strip()
     grant_welcome(db, customer)
-    token = secrets.token_urlsafe(32)
+    token = issue_session(db, customer)
     customer.mini_token_hash = hashlib.sha256(token.encode()).hexdigest()
     db.commit()
-    return {"token": token, "auth_mode": mode, "customer": _profile(customer)}
+    return {"token": token, "auth_mode": mode, "device_key": device_key, "customer": _profile(customer, db)}
 
 
 @router.get("/me")
 def me(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
-    return _profile(_customer(authorization, db))
+    return _profile(_customer(authorization, db), db)
+
+
+@router.post("/mock-device")
+def mock_device(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+    customer = _customer(authorization, db)
+    if settings.mini_auth_mode.strip().lower() != "mock":
+        raise HTTPException(403, "正式微信登录不使用测试身份凭据")
+    # Existing pre-role test sessions can retain their account after token expiry.
+    device_key = secrets.token_urlsafe(32)
+    customer.wechat_openid = "test_" + hashlib.sha256(device_key.encode()).hexdigest()
+    db.commit()
+    return {"device_key": device_key}
 
 
 @router.patch("/me")
@@ -118,7 +137,7 @@ def update_profile(data: MiniProfileIn, authorization: str | None = Header(defau
         raise HTTPException(400, "请填写称呼和联系电话")
     customer.name, customer.phone, customer.address = data.name.strip(), data.phone.strip(), data.address.strip()
     db.commit()
-    return _profile(customer)
+    return _profile(customer, db)
 
 
 @router.get("/coupons")
@@ -238,7 +257,7 @@ def cancel_order(order_id: int, authorization: str | None = Header(default=None)
 
 
 # Use the same administrative access boundary as product/customer/delivery APIs.
-@router.get("/merchant/orders")
+@router.get("/merchant/orders", dependencies=[Depends(require_owner)])
 def merchant_orders(db: Session = Depends(get_db), phone: str | None = None, status: str | None = None):
     query = select(MiniOrder)
     if phone and phone.strip():
@@ -250,17 +269,17 @@ def merchant_orders(db: Session = Depends(get_db), phone: str | None = None, sta
         query = query.where(MiniOrder.status == status)
     orders = db.scalars(query.options(selectinload(MiniOrder.items), selectinload(MiniOrder.customer))
                         .order_by(MiniOrder.created_at.desc(), MiniOrder.id.desc()).limit(500)).all()
-    return [{**_order_info(order), "customer": _profile(order.customer)} for order in orders]
+    return [{**_order_info(order), "customer": _contact(order.customer)} for order in orders]
 
 
-@router.post("/merchant/orders/{order_id}/cancel")
-def merchant_cancel_order(order_id: int, db: Session = Depends(get_db)):
+@router.post("/merchant/orders/{order_id}/cancel", dependencies=[Depends(require_owner)])
+def merchant_cancel_order(order_id: int, db: Session = Depends(get_db), actor: Customer = Depends(require_owner)):
     order = _locked_order(db, order_id)
-    cancel_sale(db, order, "管理员")
+    cancel_sale(db, order, actor.name)
     db.commit()
     return {"status": order.status}
 
-@router.get("/merchant/pickup-by-phone")
+@router.get("/merchant/pickup-by-phone", dependencies=[Depends(require_owner)])
 def pickup_by_phone(phone_suffix: str, db: Session = Depends(get_db)):
     if len(phone_suffix) != 4 or any(char not in "0123456789" for char in phone_suffix):
         raise HTTPException(400, "请输入手机尾号后四位数字")
@@ -269,20 +288,20 @@ def pickup_by_phone(phone_suffix: str, db: Session = Depends(get_db)):
                                Customer.phone.endswith(phone_suffix, autoescape=True))
                         .options(selectinload(MiniOrder.items), selectinload(MiniOrder.customer))
                         .order_by(MiniOrder.created_at.desc(), MiniOrder.id.desc())).all()
-    return [{**_order_info(order), "customer": _profile(order.customer)} for order in orders]
+    return [{**_order_info(order), "customer": _contact(order.customer)} for order in orders]
 
 
-@router.get("/merchant/pickup/{code}")
+@router.get("/merchant/pickup/{code}", dependencies=[Depends(require_owner)])
 def lookup_pickup(code: str, db: Session = Depends(get_db)):
     order = db.scalar(select(MiniOrder).where(MiniOrder.pickup_code == code)
                       .options(selectinload(MiniOrder.items), selectinload(MiniOrder.customer)))
     if order is None:
         raise HTTPException(404, "提货码不存在")
-    return {**_order_info(order), "customer": _profile(order.customer)}
+    return {**_order_info(order), "customer": _contact(order.customer)}
 
 
-@router.post("/merchant/redeem")
-def redeem(data: PickupCodeIn, db: Session = Depends(get_db)):
+@router.post("/merchant/redeem", dependencies=[Depends(require_owner)])
+def redeem(data: PickupCodeIn, db: Session = Depends(get_db), actor: Customer = Depends(require_owner)):
     order = db.scalar(select(MiniOrder).where(MiniOrder.pickup_code == data.code)
                       .options(selectinload(MiniOrder.items)).with_for_update())
     if order is None:
@@ -295,24 +314,24 @@ def redeem(data: PickupCodeIn, db: Session = Depends(get_db)):
     deliveries = db.scalars(select(Delivery).where(Delivery.mini_order_id == order.id).with_for_update()).all()
     for delivery in deliveries:
         delivery.status, delivery.completed_at = "已完成", now
-    write_log(db, "mini_order_redeem", None, "管理员", previous, "已核销", f"商城订单 {order.order_no} 完成提货核销")
+    write_log(db, "mini_order_redeem", None, actor.name, previous, "已核销", f"商城订单 {order.order_no} 完成提货核销")
     db.commit()
     return _order_info(order)
 
 
-@router.get("/merchant/customers")
+@router.get("/merchant/customers", dependencies=[Depends(require_owner)])
 def mini_customers(db: Session = Depends(get_db)):
     rows = db.scalars(select(Customer).where(Customer.source == "mini", Customer.wechat_openid.is_not(None)).order_by(Customer.id.desc())).all()
-    return [_profile(customer) for customer in rows]
+    return [_contact(customer) for customer in rows]
 
 
-@router.get("/merchant/coupon-settings")
+@router.get("/merchant/coupon-settings", dependencies=[Depends(require_owner)])
 def get_coupon_settings(db: Session = Depends(get_db)):
     row = coupon_settings(db)
     return {"welcome_amount": float(row.welcome_amount), "welcome_validity_days": row.welcome_validity_days, "welcome_usage_type": row.welcome_usage_type}
 
 
-@router.put("/merchant/coupon-settings")
+@router.put("/merchant/coupon-settings", dependencies=[Depends(require_owner)])
 def set_coupon_settings(data: CouponSettingIn, db: Session = Depends(get_db)):
     row = coupon_settings(db, lock=True)
     before = f"新用户券 ¥{row.welcome_amount}，有效 {row.welcome_validity_days} 天"
@@ -324,8 +343,8 @@ def set_coupon_settings(data: CouponSettingIn, db: Session = Depends(get_db)):
     return {"welcome_amount": float(row.welcome_amount), "welcome_validity_days": row.welcome_validity_days, "welcome_usage_type": row.welcome_usage_type}
 
 
-@router.post("/merchant/coupons")
-def issue_coupons(data: CouponGrantIn, db: Session = Depends(get_db)):
+@router.post("/merchant/coupons", dependencies=[Depends(require_owner)])
+def issue_coupons(data: CouponGrantIn, db: Session = Depends(get_db), actor: Customer = Depends(require_owner)):
     coupon_settings(db, lock=True)
     key = "manual:" + hashlib.sha256(data.request_key.encode()).hexdigest()[:48]
     existing = db.scalars(select(CustomerCoupon.id).where(CustomerCoupon.grant_key == key)).all()
@@ -343,15 +362,15 @@ def issue_coupons(data: CouponGrantIn, db: Session = Depends(get_db)):
     for customer in customers:
         db.add(CustomerCoupon(customer_id=customer.id, title=data.title.strip(), amount=data.amount,
              source="manual", usage_type=data.usage_type, grant_key=key, issued_at=now, expires_at=now+timedelta(days=data.validity_days)))
-    write_log(db, "coupon_grant", None, "管理员", "", f"已发放 {len(customers)} 张",
+    write_log(db, "coupon_grant", None, actor.name, "", f"已发放 {len(customers)} 张",
               f"{data.title}：每张 ¥{data.amount}，有效 {data.validity_days} 天")
     db.commit()
     return {"issued": len(customers), "duplicate_request": False}
 
 
-@router.get("/merchant/coupons")
+@router.get("/merchant/coupons", dependencies=[Depends(require_owner)])
 def issued_coupons(db: Session = Depends(get_db)):
     now = utc_now(db)
     rows = db.scalars(select(CustomerCoupon).options(selectinload(CustomerCoupon.customer))
                       .order_by(CustomerCoupon.id.desc()).limit(500)).all()
-    return [{**coupon_info(coupon, now), "customer": _profile(coupon.customer)} for coupon in rows]
+    return [{**coupon_info(coupon, now), "customer": _contact(coupon.customer)} for coupon in rows]

@@ -34,7 +34,7 @@ function formValues(event) {
   return Object.fromEntries(new FormData(event.currentTarget).entries());
 }
 
-export default function App() {
+function AdminApp({ account, onLogout }) {
   const [page, setPage] = useState("概览");
   const [data, setData] = useState(initialData);
   const [modal, setModal] = useState("");
@@ -292,6 +292,7 @@ export default function App() {
         setMobileOpen={setMobileOpen}
       />
       <main className="main">
+        <div className="admin-account"><span>{account.name} · 店主</span><button type="button" onClick={onLogout}>退出登录</button></div>
         <Topbar
           page={page}
           mobileOpen={mobileOpen}
@@ -338,4 +339,44 @@ export default function App() {
       )}
     </div>
   );
+}
+
+export default function App() {
+  const [account, setAccount] = useState(null);
+  const [checking, setChecking] = useState(!!sessionStorage.getItem("adminToken"));
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const expired = () => { setAccount(null); setError("登录已失效，请重新获取电脑登录码"); };
+    window.addEventListener("admin-session-expired", expired);
+    if (sessionStorage.getItem("adminToken")) api.me().then(setAccount).catch(e => setError(e.message)).finally(() => setChecking(false));
+    return () => window.removeEventListener("admin-session-expired", expired);
+  }, []);
+  async function login(event) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true); setError("");
+    try {
+      const result = await api.login(code.trim());
+      sessionStorage.setItem("adminToken", result.token);
+      setAccount(result.customer); setCode("");
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
+  }
+  async function logout() {
+    try { await api.logout(); } catch { /* Local logout still completes offline. */ }
+    sessionStorage.removeItem("adminToken"); setAccount(null);
+  }
+  if (checking) return <div className="admin-login"><p>正在恢复登录…</p></div>;
+  if (account) return <AdminApp account={account} onLogout={logout} />;
+  return <div className="admin-login"><form onSubmit={login} className="admin-login-card">
+    <span className="admin-login-brand">农丰水站</span><h1>商家后台</h1>
+    <p>请在小程序「我的 → 商家工作台」获取电脑登录码。</p>
+    <label htmlFor="admin-code">一次性登录码</label>
+    <input id="admin-code" value={code} onChange={e => setCode(e.target.value)} placeholder="输入 12 位登录码" autoComplete="off" maxLength={32} required />
+    {error && <p className="admin-login-error" role="alert">{error}</p>}
+    <button type="submit" disabled={busy}>{busy ? "正在登录…" : "登录后台"}</button>
+    <p className="admin-login-help">首次使用：由服务器管理员生成店主授权码，在小程序「我的 → 商家授权」完成初始化。登录码 5 分钟内有效，登录后可使用 8 小时。</p>
+  </form></div>;
 }

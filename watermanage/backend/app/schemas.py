@@ -55,6 +55,7 @@ class StatusIn(BaseModel):
 class MiniBindIn(BaseModel):
     model_config = {"str_strip_whitespace": True}
     code: str | None = None
+    device_key: str | None = Field(default=None, min_length=32, max_length=128)
     name: str = Field(min_length=1, max_length=120)
     phone: str = Field(min_length=1, max_length=40)
     address: str = Field(default="", max_length=300)
@@ -100,3 +101,7 @@ class CouponGrantIn(BaseModel):
 
 class PickupCodeIn(BaseModel):
     code: str = Field(pattern=r"^\d{6}$")
+
+
+class AccessCodeIn(BaseModel):
+    code: str = Field(min_length=8, max_length=128)

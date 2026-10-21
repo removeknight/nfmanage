@@ -240,3 +240,6 @@ for attempt in $(seq 1 30); do
 done
 curl --noproxy '*' -fsS "http://127.0.0.1:${app_port}/" >/dev/null
 echo "部署完成。FastAPI 和前端由系统级 Supervisor 管理；状态页监听 0.0.0.0:9001；Nginx 负责入口代理；PostgreSQL 由 Docker Compose 管理。访问端口：${app_port}"
+echo "首次开通商家：运行 bash deploy/merchant-bootstrap.sh，由指定店主在小程序『我的 → 商家授权』输入一次性授权码。"
+echo "电脑后台需要店主登录码：在小程序商家工作台生成，5 分钟内有效；登录后会话有效 8 小时。"
+echo "MINI_AUTH_MODE=mock 仅供测试；切换正式微信登录后，请重新为真实微信账号初始化店主。"

@@ -4,6 +4,7 @@ from .deliveries import router as deliveries_router
 from .health import router as health_router
 from .logs import router as logs_router
 from .mini import router as mini_router
+from .merchant import router as merchant_router, access_router
 from .products import router as products_router
 from .transactions import router as transactions_router
 
@@ -16,4 +17,6 @@ all_routers = [
     dashboard_router,
     logs_router,
     mini_router,
+    merchant_router,
+    access_router,
 ]

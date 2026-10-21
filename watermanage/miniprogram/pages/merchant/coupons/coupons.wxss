@@ -1,0 +1,2 @@
+@import "../../../styles/merchant.wxss";
+.customer { padding:20rpx 0; border-bottom:1rpx solid #edf0ec; }

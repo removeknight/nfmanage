@@ -1,9 +1,13 @@
 async function request(path, options = {}) {
   const response = await fetch(path, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options.headers },
+    headers: { "Content-Type": "application/json", ...(sessionStorage.getItem("adminToken") ? { Authorization: `Bearer ${sessionStorage.getItem("adminToken")}` } : {}), ...options.headers },
   });
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      sessionStorage.removeItem("adminToken");
+      window.dispatchEvent(new Event("admin-session-expired"));
+    }
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "操作失败，请稍后重试");
   }
@@ -13,6 +17,9 @@ async function request(path, options = {}) {
 const send = (path, body, method = "POST") =>
   request(path, { method, body: JSON.stringify(body) });
 export const api = {
+  login: (code) => send("/api/access/web-login", { code }),
+  me: () => request("/api/access/me"),
+  logout: () => send("/api/access/logout", {}),
   dashboard: () => request("/api/dashboard"),
   products: (active = true) => request(`/api/products?active=${active}`),
   productPage: ({ active, page, pageSize, sortBy, sortDir, ids }) => {

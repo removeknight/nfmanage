@@ -17,13 +17,18 @@ Page({
       else {
         let code = ''
         if (!this.data.mock) code = (await new Promise((resolve, reject) => wx.login({ success: resolve, fail: reject }))).code
-        const result = await request('/api/mini/bind', { method: 'POST', data: { name, phone, address, code } })
+        const deviceKey = wx.getStorageSync('mockDeviceKey') || undefined
+        const result = await request('/api/mini/bind', { method: 'POST', data: { name, phone, address, code, device_key: deviceKey } })
+        if (result.device_key) wx.setStorageSync('mockDeviceKey', result.device_key)
         getApp().globalData.miniToken = result.token; wx.setStorageSync('miniToken', result.token); saveCustomer(result.customer)
       }
       wx.showToast({ title: this.data.editing ? '资料已保存' : '绑定成功' })
       if (getCurrentPages().length > 1) wx.navigateBack()
       else wx.switchTab({ url: '/pages/me/me' })
-    } catch (error) { wx.showToast({ title: error.message, icon: 'none' }) }
+    } catch (error) {
+      if (!getApp().globalData.miniToken) this.setData({ editing: false })
+      wx.showToast({ title: error.message, icon: 'none' })
+    }
     finally { this.setData({ saving: false }) }
   },
 })

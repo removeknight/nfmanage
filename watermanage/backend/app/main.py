@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from .database import SessionLocal
 from .models import Customer, Product
-from .routers import all_routers
+from .routers import all_routers, health_router
 from .settings import settings
+from .services.auth import require_owner
 
 
 @asynccontextmanager
@@ -34,7 +35,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="农丰水站 API", version="1.4.0", lifespan=lifespan)
+app = FastAPI(title="农丰水站 API", version="1.5.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins.split(","),
@@ -44,4 +45,5 @@ app.add_middleware(
 )
 
 for router in all_routers:
-    app.include_router(router)
+    public = router is health_router or router.prefix in {"/api/mini", "/api/access", "/api/merchant"}
+    app.include_router(router, dependencies=[] if public else [Depends(require_owner)])

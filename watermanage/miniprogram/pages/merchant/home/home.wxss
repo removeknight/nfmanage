@@ -1,0 +1,5 @@
+@import "../../../styles/merchant.wxss";
+.metrics { display:flex; gap:20rpx; }
+.metric { flex:1; width:0; min-width:0; }
+.metric-number { font-size:52rpx; color:#356e60; font-weight:600; margin-bottom:12rpx; }
+.menu .section-title { margin-bottom:8rpx; }

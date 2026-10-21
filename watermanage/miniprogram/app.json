@@ -4,7 +4,14 @@
     "pages/me/me",
     "pages/profile/profile",
     "pages/orders/orders",
-    "pages/logs/logs"
+    "pages/logs/logs",
+    "pages/merchant/home/home",
+    "pages/merchant/orders/orders",
+    "pages/merchant/detail/detail",
+    "pages/merchant/stock/stock",
+    "pages/merchant/coupons/coupons",
+    "pages/merchant/team/team",
+    "pages/merchant/activate/activate"
   ],
   "window": {
     "navigationBarTextStyle": "black",

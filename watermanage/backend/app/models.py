@@ -32,7 +32,9 @@ class Customer(Base):
     address: Mapped[str] = mapped_column(String(300), default="")
     note: Mapped[str] = mapped_column(Text, default="")
     wechat_openid: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
-    __table_args__ = (UniqueConstraint("source", "wechat_openid", name="uq_customer_source_openid"),)
+    auth_provider: Mapped[str] = mapped_column(String(12), default="")
+    auth_app_id: Mapped[str] = mapped_column(String(80), default="")
+    __table_args__ = (UniqueConstraint("source", "auth_app_id", "wechat_openid", name="uq_customer_app_openid"),)
     mini_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     welcome_coupon_granted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -147,3 +149,43 @@ class CustomerCoupon(Base):
     used_order_id: Mapped[int | None] = mapped_column(ForeignKey("mini_orders.id"), nullable=True, index=True)
     used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     customer: Mapped[Customer] = relationship()
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(12), default="mini")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    customer: Mapped[Customer] = relationship()
+
+
+class MerchantMember(Base):
+    __tablename__ = "merchant_members"
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), primary_key=True)
+    role: Mapped[str] = mapped_column(String(12))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    granted_by: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    customer: Mapped[Customer] = relationship(foreign_keys=[customer_id])
+
+
+class MerchantCode(Base):
+    __tablename__ = "merchant_codes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(12))  # bootstrap, invite, web
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True)
+    used_by: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class MerchantControl(Base):
+    __tablename__ = "merchant_control"
+    id: Mapped[int] = mapped_column(primary_key=True)

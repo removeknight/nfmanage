@@ -23,6 +23,10 @@ Page({
       const [customer, raw] = await Promise.all([request('/api/mini/me'), request('/api/mini/coupons')])
       if (!this._pollVisible || version !== this._viewVersion) return
       saveCustomer(customer)
+      if (customer.auth_provider === 'mock' && !wx.getStorageSync('mockDeviceKey')) {
+        const device = await request('/api/mini/mock-device', { method: 'POST' })
+        wx.setStorageSync('mockDeviceKey', device.device_key)
+      }
       const readOnEntry = this._readCouponsOnEntry
       if (readOnEntry) {
         markCouponsRead(raw)
@@ -47,4 +51,9 @@ Page({
     wx.navigateTo({ url: '/pages/orders/orders' })
   },
   goShop() { wx.switchTab({ url: '/pages/index/index' }) },
+  goMerchant() { wx.navigateTo({ url: '/pages/merchant/home/home' }) },
+  goActivate() {
+    if (!getApp().globalData.miniToken) return this.goProfile()
+    wx.navigateTo({ url: '/pages/merchant/activate/activate' })
+  },
 })

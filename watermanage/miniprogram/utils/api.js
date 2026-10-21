@@ -12,7 +12,9 @@ function request(path, options = {}) {
         wx.removeTabBarBadge({ index: 1 })
       }
       const detail = response.data && response.data.detail
-      reject(new Error(typeof detail === 'string' ? detail : '信息填写有误，请检查后重试'))
+      const error = new Error(typeof detail === 'string' ? detail : '信息填写有误，请检查后重试')
+      error.status = response.statusCode
+      reject(error)
     },
     fail: () => reject(new Error('无法连接农丰水站，请检查网络后重试')),
   }))
