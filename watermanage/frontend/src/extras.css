@@ -88,3 +88,6 @@
 .product-image-form input[type="file"] { height: auto; padding: 12px; }
 .product-image-form .form-actions { flex-wrap: wrap; }
 .product-image-form .admin-login-error { color: #b84938; }
+.product-upload-status { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line, #e3eae5); border-radius: 10px; }
+.product-upload-status progress { width: 100%; accent-color: #356e60; }
+.product-upload-status button { justify-self: start; }

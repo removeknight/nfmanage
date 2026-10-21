@@ -1,17 +1,68 @@
 async function request(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(sessionStorage.getItem("adminToken") ? { Authorization: `Bearer ${sessionStorage.getItem("adminToken")}` } : {}), ...options.headers },
-  });
-  if (!response.ok) {
-    if (response.status === 401) {
-      sessionStorage.removeItem("adminToken");
-      window.dispatchEvent(new Event("admin-session-expired"));
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(path, {
+      ...options,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...(sessionStorage.getItem("adminToken") ? { Authorization: `Bearer ${sessionStorage.getItem("adminToken")}` } : {}), ...options.headers },
+    });
+    if (!response.ok) {
+      expireSession(response.status);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || (response.status === 413 ? "图片不能超过 5MB" : "操作失败，请稍后重试"));
     }
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || (response.status === 413 ? "图片不能超过 5MB" : "操作失败，请稍后重试"));
+    return await response.json();
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("请求超时，请刷新页面确认操作结果后再重试");
+    throw error;
+  } finally { clearTimeout(timer); }
+}
+
+function expireSession(status) {
+  if (status === 401) {
+    sessionStorage.removeItem("adminToken");
+    window.dispatchEvent(new Event("admin-session-expired"));
   }
-  return response.json();
+}
+
+function uploadProductImage(id, file, { signal, onProgress } = {}) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const stop = () => xhr.abort();
+    function finish(error, result) {
+      signal?.removeEventListener("abort", stop);
+      if (error) reject(error); else resolve(result);
+    }
+    xhr.open("PUT", `/api/products/${id}/image`);
+    xhr.timeout = 60000;
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    const token = sessionStorage.getItem("adminToken");
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable) onProgress?.(Math.round(event.loaded / event.total * 100));
+    };
+    xhr.onload = () => {
+      expireSession(xhr.status);
+      let body;
+      try { body = JSON.parse(xhr.responseText); } catch { body = {}; }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        if (!body.image_url) return finish(new Error("图片保存结果异常，请刷新页面确认"));
+        finish(null, body);
+      } else finish(new Error(body.detail || (xhr.status === 413 ? "图片被服务器大小限制拦截，请重新刷新页面后重试" : `图片上传失败（${xhr.status}），请重试`)));
+    };
+    xhr.onerror = () => finish(new Error("网络连接中断，请刷新列表确认图片是否已保存"));
+    xhr.ontimeout = () => finish(new Error("上传等待超过 60 秒，请刷新列表确认图片是否已保存，再决定是否重试"));
+    xhr.onabort = () => {
+      const error = new Error("已停止等待，请刷新列表确认图片是否已保存");
+      error.name = "AbortError";
+      finish(error);
+    };
+    if (signal?.aborted) return finish(new Error("上传已停止"));
+    signal?.addEventListener("abort", stop, { once: true });
+    try { xhr.send(file); }
+    catch { finish(new Error("无法发送图片，请检查网络后重试")); }
+  });
 }
 
 const send = (path, body, method = "POST") =>
@@ -34,9 +85,7 @@ export const api = {
     return request(`/api/products?${params.toString()}`);
   },
   reactivateProduct: (id) => send(`/api/products/${id}/reactivate`, {}),
-  uploadProductImage: (id, file) => request(`/api/products/${id}/image`, {
-    method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" },
-  }),
+  uploadProductImage,
   removeProductImage: (id) => request(`/api/products/${id}/image`, { method: "DELETE" }),
   customers: () => request("/api/customers"),
   setMerchantRole: (id, role) => send(`/api/customers/${id}/merchant-role`, { role }, "PUT"),
