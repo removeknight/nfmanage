@@ -6,11 +6,13 @@ from .logs import router as logs_router
 from .mini import router as mini_router
 from .merchant import router as merchant_router, access_router
 from .products import router as products_router
+from .media import router as media_router
 from .transactions import router as transactions_router
 
 all_routers = [
     health_router,
     products_router,
+    media_router,
     customers_router,
     transactions_router,
     deliveries_router,

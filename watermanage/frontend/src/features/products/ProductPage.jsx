@@ -7,6 +7,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import ProductVisual from "../../components/ProductVisual";
+import ProductImageDialog from "./ProductImageDialog";
 import { money } from "../../components/UI";
 import { matchesSearch } from "../../utils/search";
 
@@ -31,6 +32,7 @@ export default function ProductPage({
   openModal,
   deactivateProduct,
   fetchPage,
+  imageSaved,
 }) {
   const [sort, setSort] = useState({ key: "name", direction: 1 });
   const [statusView, setStatusView] = useState("active");
@@ -41,6 +43,7 @@ export default function ProductPage({
     page_size: 10,
   });
   const [loading, setLoading] = useState(false);
+  const [imageProduct, setImageProduct] = useState(null);
   const source = statusView === "active" ? products : inactiveProducts;
   const matchedIds = useMemo(
     () =>
@@ -95,7 +98,7 @@ export default function ProductPage({
     }));
   }
   return (
-    <section className="panel table-panel">
+    <><section className="panel table-panel">
       <div className="panel-heading">
         <div>
           <span className="section-kicker">PRODUCT CATALOG</span>
@@ -212,6 +215,7 @@ export default function ProductPage({
                 </td>
                 <td>
                   <div className="row-actions">
+                    <button type="button" className="row-action" onClick={() => setImageProduct(product)}>设置图片</button>
                     {statusView === "active" ? (
                       <>
                         <button
@@ -282,5 +286,10 @@ export default function ProductPage({
         <span>下架商品可在“已下架”中重新上架</span>
       </div>
     </section>
+    {imageProduct && <ProductImageDialog product={imageProduct} close={() => setImageProduct(null)} saved={(result, message) => {
+      setImageProduct(null);
+      setPageData(current => ({ ...current, items: current.items.map(item => item.id === result.id ? { ...item, image_url: result.image_url } : item) }));
+      imageSaved(result, message);
+    }} />}</>
   );
 }

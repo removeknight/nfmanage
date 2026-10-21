@@ -138,7 +138,7 @@ export default function ProductForm({ busy, cancel, submit, products = [] }) {
       <Field label="录入人" name="operator" defaultValue="管理员" required />
       <div className="form-note">
         <Sparkles size={15} />
-        商品卡片会按包装形态和识别颜色生成直观示意图。
+        保存商品后，可在商品列表点击“设置图片”上传真实照片；未设置时显示示意图。
       </div>
       <div className="form-actions">
         <button type="button" className="secondary-btn" onClick={cancel}>

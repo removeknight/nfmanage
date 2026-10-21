@@ -76,6 +76,7 @@ WECHAT_APP_SECRET=
 MINI_AUTH_MODE=wechat
 SEED_DEMO_DATA=false
 FRONTEND_MODE=static
+UPLOAD_DIR=/var/lib/watermanage/uploads
 EOF
   chmod 600 .env
   echo "已生成 .env 和随机数据库密码（权限 0600）。请安全保管该文件。"
@@ -83,6 +84,9 @@ fi
 
 if ! grep -q '^MINI_AUTH_MODE=' .env; then
   printf 'MINI_AUTH_MODE=wechat\n' >> .env
+fi
+if ! grep -q '^UPLOAD_DIR=' .env; then
+  printf '\nUPLOAD_DIR=/var/lib/watermanage/uploads\n' >> .env
 fi
 
 if ! grep -q '^DATABASE_URL=' .env; then
@@ -103,6 +107,8 @@ export WECHAT_APP_ID="${WECHAT_APP_ID:-}"
 export WECHAT_APP_SECRET="${WECHAT_APP_SECRET:-}"
 export MINI_AUTH_MODE="${MINI_AUTH_MODE:-wechat}"
 export SEED_DEMO_DATA="${SEED_DEMO_DATA:-false}"
+export UPLOAD_DIR="${UPLOAD_DIR:-/var/lib/watermanage/uploads}"
+mkdir -p "${UPLOAD_DIR}/products"
 frontend_mode="${FRONTEND_MODE:-static}"
 [[ "$frontend_mode" == static || "$frontend_mode" == preview ]] || { echo "FRONTEND_MODE 仅支持 static 或 preview。" >&2; exit 1; }
 chmod 600 .env
@@ -157,7 +163,7 @@ cat > /etc/supervisor/conf.d/watermanage.conf <<EOF
 [program:watermanage-api]
 command=${APP_DIR}/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 directory=${APP_DIR}/backend
-environment=DATABASE_URL="${DATABASE_URL}",CORS_ORIGINS="${CORS_ORIGINS}",WECHAT_APP_ID="${WECHAT_APP_ID}",WECHAT_APP_SECRET="${WECHAT_APP_SECRET}",MINI_AUTH_MODE="${MINI_AUTH_MODE}",SEED_DEMO_DATA="${SEED_DEMO_DATA}"
+environment=DATABASE_URL="${DATABASE_URL}",CORS_ORIGINS="${CORS_ORIGINS}",WECHAT_APP_ID="${WECHAT_APP_ID}",WECHAT_APP_SECRET="${WECHAT_APP_SECRET}",MINI_AUTH_MODE="${MINI_AUTH_MODE}",SEED_DEMO_DATA="${SEED_DEMO_DATA}",UPLOAD_DIR="${UPLOAD_DIR}"
 autostart=true
 autorestart=true
 startsecs=5
@@ -218,6 +224,7 @@ cat > /etc/nginx/conf.d/watermanage.conf <<EOF
 server {
     listen ${app_port};
     server_name ${SERVER_NAME:-_};
+    client_max_body_size 6m;
     location /api/ {
         proxy_pass http://127.0.0.1:8000/api/;
         proxy_set_header Host \$host;

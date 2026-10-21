@@ -21,8 +21,13 @@ readingPage({
     try {
       const [products, coupons] = await Promise.all([request('/api/mini/products'), app.globalData.miniToken ? request('/api/mini/coupons') : Promise.resolve([])])
       if (!this._pollVisible || version !== this._viewVersion) return
-      const categories = ['全部', ...new Set(products.map(product => product.category))]
-      this.setData({ products, categories, activeCategory: categories.includes(this.data.activeCategory) ? this.data.activeCategory : '全部' })
+      const catalog = products.map(product => {
+        const url = typeof product.image_url === 'string' ? product.image_url : ''
+        const imageSrc = /^https?:\/\//i.test(url) ? url : url.startsWith('/') ? app.globalData.apiBaseUrl.replace(/\/$/, '') + url : ''
+        return { ...product, imageSrc }
+      })
+      const categories = ['全部', ...new Set(catalog.map(product => product.category))]
+      this.setData({ products: catalog, categories, activeCategory: categories.includes(this.data.activeCategory) ? this.data.activeCategory : '全部' })
       this.groupProducts(); this.updateCart(this.data.cart)
       syncCoupons(coupons, quiet)
       if (this.data.showCheckout) this.prepareCoupons(coupons, false)
@@ -30,7 +35,12 @@ readingPage({
     finally { this._loadingProducts = false; if (version === this._viewVersion) this.setData({ loading: false }) }
   },
   groupProducts() {
-    const filtered = this.data.activeCategory === '全部' ? this.data.products : this.data.products.filter(p => p.category === this.data.activeCategory)
+    const filtered = (this.data.activeCategory === '全部' ? this.data.products : this.data.products.filter(p => p.category === this.data.activeCategory))
+      .map(product => {
+        const failed = (this._failedImages || {})[product.id]
+        const retry = !failed || failed.url !== product.imageSrc || Date.now() - failed.time > 30000
+        return { ...product, displayImage: retry ? product.imageSrc : '' }
+      })
     const grouped = [...new Set(filtered.map(p => p.category))].map(category => {
       const products = filtered.filter(p => p.category === category)
       return { category, brands: [...new Set(products.map(p => p.brand))].map(brand => ({ brand, products: products.filter(p => p.brand === brand) })) }
@@ -38,6 +48,12 @@ readingPage({
     this.setData({ grouped })
   },
   selectCategory(event) { this.setData({ activeCategory: event.currentTarget.dataset.category }); this.groupProducts() },
+  imageFailed(event) {
+    const { id, src } = event.currentTarget.dataset
+    this._failedImages = this._failedImages || {}
+    this._failedImages[id] = { url: src, time: Date.now() }
+    this.groupProducts()
+  },
   updateField(event) { this.setData({ [event.currentTarget.dataset.field]: event.detail.value }) },
   changeQuantity(event) {
     if (!app.globalData.customer) return wx.navigateTo({ url: '/pages/profile/profile' })

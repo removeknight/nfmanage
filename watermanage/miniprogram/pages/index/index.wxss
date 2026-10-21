@@ -32,6 +32,7 @@ page {
 .product-card { width: 100%; min-width: 0; box-sizing: border-box; margin-bottom: 16rpx; padding: 22rpx; border: 1rpx solid #e9eeeb; border-radius: 18rpx; background: #fff; }
 .product-main { display: flex; align-items: center; gap: 20rpx; min-width: 0; }
 .product-visual { display: flex; flex: none; width: 122rpx; height: 122rpx; flex-direction: column; align-items: center; justify-content: center; border-radius: 14rpx; background: #edf4f0; color: #648d7f; }
+.product-image { display: block; width: 100%; height: 100%; border-radius: 14rpx; background: #fff; }
 .water-glyph { font-size: 1.53125rem; font-weight: 600; line-height: 1.1; }
 .capacity-label { margin-top: 6rpx; color: #56685f; font-size: 12px; }
 .product-info { min-width: 0; flex: 1; overflow-wrap: anywhere; }
@@ -87,7 +88,7 @@ page {
 .checkout-discount { display: flex; flex-wrap: wrap; gap: 12rpx; align-items: center; justify-content: space-between; margin: 8rpx 0 18rpx; color: #56685f; font-size: 1rem; overflow-wrap: anywhere; }
 .checkout-discount text { color: #a64e32; font-size: 1.0625rem; font-weight: 650; }
 .reading-large .product-main { align-items: flex-start; }
-.reading-large .product-visual { width: 86rpx; height: 86rpx; }
+.reading-large .product-visual { width: 122rpx; height: 122rpx; }
 .reading-large .water-glyph { font-size: 24px; }
 .reading-large .capacity-label { display: none; }
 .reading-large .section-note { display: none; }

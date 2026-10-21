@@ -17,6 +17,7 @@ export const actionLabels = {
   product_create: "新增商品",
   product_deactivate: "商品下架",
   product_reactivate: "商品重新上架",
+  product_image: "商品图片设置",
   delivery_status: "配送状态",
   order_reserve: "订单预留库存",
   order_release: "释放预留库存",

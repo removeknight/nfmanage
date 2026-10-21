@@ -9,7 +9,7 @@ async function request(path, options = {}) {
       window.dispatchEvent(new Event("admin-session-expired"));
     }
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || "操作失败，请稍后重试");
+    throw new Error(error.detail || (response.status === 413 ? "图片不能超过 5MB" : "操作失败，请稍后重试"));
   }
   return response.json();
 }
@@ -34,6 +34,10 @@ export const api = {
     return request(`/api/products?${params.toString()}`);
   },
   reactivateProduct: (id) => send(`/api/products/${id}/reactivate`, {}),
+  uploadProductImage: (id, file) => request(`/api/products/${id}/image`, {
+    method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" },
+  }),
+  removeProductImage: (id) => request(`/api/products/${id}/image`, { method: "DELETE" }),
   customers: () => request("/api/customers"),
   setMerchantRole: (id, role) => send(`/api/customers/${id}/merchant-role`, { role }, "PUT"),
   deliveries: () => request("/api/deliveries"),

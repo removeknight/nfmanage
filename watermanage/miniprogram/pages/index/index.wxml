@@ -19,7 +19,10 @@
       <view class="brand-heading">{{item.brand}}</view>
       <view wx:for="{{item.products}}" wx:key="id" class="product-card">
         <view class="product-main">
-          <view class="product-visual"><text class="water-glyph">水</text><text class="capacity-label">{{item.capacity}}</text></view>
+          <view class="product-visual">
+            <image wx:if="{{item.displayImage}}" class="product-image" src="{{item.displayImage}}" mode="aspectFit" lazy-load data-id="{{item.id}}" data-src="{{item.imageSrc}}" binderror="imageFailed" aria-label="{{item.brand}} {{item.name}} {{item.capacity}}"/>
+            <block wx:else><text class="water-glyph">水</text><text class="capacity-label">{{item.capacity}}</text></block>
+          </view>
           <view class="product-info"><view class="product-name">{{item.name}}</view><view class="product-spec">{{item.capacity}} · {{item.package_type}}</view></view>
         </view>
         <view class="product-bottom"><view class="product-price"><text class="price-symbol">¥</text><text class="price">{{item.sell_price}}</text><text class="unit"> / {{item.package_type}}</text></view>

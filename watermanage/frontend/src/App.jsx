@@ -206,6 +206,12 @@ function AdminApp({ account, onLogout }) {
     await refresh();
     setToast(role === "customer" ? "商家权限已停用" : "商家权限已更新，小程序将自动同步");
   }
+  function productImageSaved(result, message) {
+    const update = rows => rows.map(item => item.id === result.id ? { ...item, image_url: result.image_url } : item);
+    setData(current => ({ ...current, products: update(current.products), inactiveProducts: update(current.inactiveProducts) }));
+    setToast(message);
+    refresh().catch(() => setToast(`${message}，列表刷新失败，请稍后刷新页面`));
+  }
   function openModal(name) {
     setModal(name);
     setQuery("");
@@ -226,6 +232,7 @@ function AdminApp({ account, onLogout }) {
       <ProductPage
         products={data.products}
         fetchPage={api.productPage}
+        imageSaved={productImageSaved}
         inactiveProducts={data.inactiveProducts}
         reactivateProduct={reactivateProduct}
         query={query}

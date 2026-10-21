@@ -45,5 +45,5 @@ app.add_middleware(
 )
 
 for router in all_routers:
-    public = router is health_router or router.prefix in {"/api/mini", "/api/access", "/api/merchant"}
+    public = router is health_router or router.prefix in {"/api/mini", "/api/access", "/api/merchant", "/api/media"}
     app.include_router(router, dependencies=[] if public else [Depends(require_manager)])

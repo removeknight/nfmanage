@@ -5,6 +5,7 @@ from ..models import OperationLog, Product
 ACTION_LABELS = {
     "purchase": "采购入库", "sale": "销售开单", "adjustment": "价格调整",
     "product_create": "新增商品", "product_deactivate": "商品下架", "product_reactivate": "商品重新上架",
+    "product_image": "商品图片设置",
     "delivery_status": "配送状态", "order_reserve": "订单预留库存", "order_release": "释放预留库存",
     "mini_order_confirm": "商家确认订单（历史）", "mini_order_reject": "商家拒绝订单（历史）",
     "mini_order_sale": "小程序下单出库", "mini_order_cancel": "取消订单并退库", "mini_order_redeem": "提货核销",

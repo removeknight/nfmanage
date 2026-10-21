@@ -1,13 +1,41 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Product
+from ..models import Customer, Product
 from ..schemas import ProductIn
 from ..services.audit import write_log
+from ..services.auth import require_manager
+from ..services.product_images import MAX_UPLOAD_BYTES, clear_product_image, save_product_image
 
 router = APIRouter(prefix="/api/products", tags=["商品"])
+
+
+@router.put("/{item_id}/image")
+async def upload_image(item_id: int, request: Request, actor: Customer = Depends(require_manager), db: Session = Depends(get_db)):
+    # Receive the raw file body, bounded while streaming; no base64 or form overhead.
+    size = request.headers.get("content-length")
+    if size:
+        try:
+            if int(size) > MAX_UPLOAD_BYTES:
+                raise HTTPException(413, "图片不能超过 5MB")
+        except ValueError:
+            raise HTTPException(400, "无效的文件大小")
+    content = bytearray()
+    async for chunk in request.stream():
+        content.extend(chunk)
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "图片不能超过 5MB")
+    if not content:
+        raise HTTPException(400, "请选择需要上传的图片")
+    return await run_in_threadpool(save_product_image, db, item_id, bytes(content), actor)
+
+
+@router.delete("/{item_id}/image")
+def delete_image(item_id: int, actor: Customer = Depends(require_manager), db: Session = Depends(get_db)):
+    return clear_product_image(db, item_id, actor)
 
 
 @router.get("")
