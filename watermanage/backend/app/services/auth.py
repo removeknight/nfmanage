@@ -11,7 +11,8 @@ from ..models import AuthSession, Customer, MerchantMember
 from ..settings import settings
 from .coupons import utc_now
 
-ROLE_LABELS = {"customer": "普通客户", "staff": "店员", "owner": "店主"}
+ROLE_LABELS = {"customer": "普通客户", "staff": "店员", "deputy": "副店长", "owner": "店主"}
+MANAGER_ROLES = {"owner", "deputy"}
 
 
 def current_identity(customer):
@@ -24,8 +25,9 @@ def digest(value):
 
 
 def role_for(db, customer):
-    member = db.get(MerchantMember, customer.id)
-    return member.role if member and member.active and member.role in {"staff", "owner"} else "customer"
+    member = db.scalar(select(MerchantMember).where(MerchantMember.customer_id == customer.id)
+                       .execution_options(populate_existing=True))
+    return member.role if member and member.active and member.role in {"staff", "deputy", "owner"} else "customer"
 
 
 def identity_profile(db, customer):
@@ -65,8 +67,15 @@ def mini_customer(authorization, db):
 
 def require_merchant(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     customer = get_session(authorization, db).customer
-    if role_for(db, customer) not in {"owner", "staff"}:
+    if role_for(db, customer) not in {"owner", "deputy", "staff"}:
         raise HTTPException(403, "此操作需要商家授权")
+    return customer
+
+
+def require_manager(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+    customer = get_session(authorization, db).customer
+    if role_for(db, customer) not in MANAGER_ROLES:
+        raise HTTPException(403, "此操作仅店主或副店长可用")
     return customer
 
 

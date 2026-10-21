@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate a first-owner code on the application server. No account is promoted here.
+# Select the first owner by a bound mini customer ID on the application server.
 set -Eeuo pipefail
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP_DIR"
@@ -12,4 +12,4 @@ set -a
 source .env
 set +a
 cd backend
-../.venv/bin/python -m app.merchant_admin bootstrap
+../.venv/bin/python -m app.merchant_admin bootstrap "$@"

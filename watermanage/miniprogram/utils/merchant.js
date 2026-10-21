@@ -1,9 +1,9 @@
 const { request, saveCustomer, formatDate } = require('./api')
-async function checkRole(ownerOnly = false) {
+async function checkRole(managerOnly = false) {
   const customer = await request('/api/mini/me')
   saveCustomer(customer)
-  if (!customer.is_merchant || (ownerOnly && customer.role !== 'owner')) {
-    const error = new Error(ownerOnly ? '此功能仅店主可用' : '商家权限已失效')
+  if (!customer.is_merchant || (managerOnly && !['owner', 'deputy'].includes(customer.role))) {
+    const error = new Error(managerOnly ? '此功能仅店主或副店长可用' : '商家权限已失效')
     error.status = 403
     throw error
   }

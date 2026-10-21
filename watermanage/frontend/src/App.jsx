@@ -201,6 +201,11 @@ function AdminApp({ account, onLogout }) {
       setToast(error.message);
     }
   }
+  async function saveMerchantRole(id, role) {
+    await api.setMerchantRole(id, role);
+    await refresh();
+    setToast(role === "customer" ? "商家权限已停用" : "商家权限已更新，小程序将自动同步");
+  }
   function openModal(name) {
     setModal(name);
     setQuery("");
@@ -235,6 +240,8 @@ function AdminApp({ account, onLogout }) {
         query={query}
         setQuery={setQuery}
         openModal={openModal}
+        account={account}
+        saveMerchantRole={saveMerchantRole}
       />
     ),
     配送订单: (
@@ -292,7 +299,7 @@ function AdminApp({ account, onLogout }) {
         setMobileOpen={setMobileOpen}
       />
       <main className="main">
-        <div className="admin-account"><span>{account.name} · 店主</span><button type="button" onClick={onLogout}>退出登录</button></div>
+        <div className="admin-account"><span>{account.name} · {account.role_label}</span><button type="button" onClick={onLogout}>退出登录</button></div>
         <Topbar
           page={page}
           mobileOpen={mobileOpen}
@@ -377,6 +384,6 @@ export default function App() {
     <input id="admin-code" value={code} onChange={e => setCode(e.target.value)} placeholder="输入 12 位登录码" autoComplete="off" maxLength={32} required />
     {error && <p className="admin-login-error" role="alert">{error}</p>}
     <button type="submit" disabled={busy}>{busy ? "正在登录…" : "登录后台"}</button>
-    <p className="admin-login-help">首次使用：由服务器管理员生成店主授权码，在小程序「我的 → 商家授权」完成初始化。登录码 5 分钟内有效，登录后可使用 8 小时。</p>
+    <p className="admin-login-help">首位店主由服务器管理员指定，副店长和店员由后台「客户管理」授权。店主及副店长的电脑登录码 5 分钟内有效，登录后可使用 8 小时。</p>
   </form></div>;
 }

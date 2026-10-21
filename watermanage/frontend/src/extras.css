@@ -73,3 +73,11 @@
 .admin-login-card button:disabled { opacity:.5; }
 .admin-login-card .admin-login-error { color:#b84938; }
 .admin-login-help { font-size:12px; }
+.merchant-role-form {
+  display: grid;
+  gap: 16px;
+}
+.merchant-role-form p {
+  margin: 0;
+  line-height: 1.6;
+}

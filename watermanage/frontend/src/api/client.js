@@ -4,7 +4,7 @@ async function request(path, options = {}) {
     headers: { "Content-Type": "application/json", ...(sessionStorage.getItem("adminToken") ? { Authorization: `Bearer ${sessionStorage.getItem("adminToken")}` } : {}), ...options.headers },
   });
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       sessionStorage.removeItem("adminToken");
       window.dispatchEvent(new Event("admin-session-expired"));
     }
@@ -35,6 +35,7 @@ export const api = {
   },
   reactivateProduct: (id) => send(`/api/products/${id}/reactivate`, {}),
   customers: () => request("/api/customers"),
+  setMerchantRole: (id, role) => send(`/api/customers/${id}/merchant-role`, { role }, "PUT"),
   deliveries: () => request("/api/deliveries"),
   transactions: () => request("/api/transactions"),
   sales: () => request("/api/sales"),

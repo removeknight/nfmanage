@@ -10,8 +10,7 @@
     "pages/merchant/detail/detail",
     "pages/merchant/stock/stock",
     "pages/merchant/coupons/coupons",
-    "pages/merchant/team/team",
-    "pages/merchant/activate/activate"
+    "pages/merchant/team/team"
   ],
   "window": {
     "navigationBarTextStyle": "black",

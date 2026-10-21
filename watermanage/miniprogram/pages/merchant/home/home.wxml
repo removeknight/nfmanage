@@ -4,12 +4,12 @@
   <view wx:if="{{loading}}" class="empty">正在加载…</view>
   <block wx:if="{{customer}}">
     <view class="metrics"><view class="card metric" data-page="orders" bindtap="go"><view class="metric-number">{{summary.pending || 0}}</view><view class="muted">待提货订单 ›</view></view><view class="card metric"><view class="metric-number">{{summary.today_redeemed || 0}}</view><view class="muted">今日已核销</view></view></view>
-    <view class="card row"><view><view class="section-title">今日小程序订单 {{summary.today_orders || 0}} 笔</view><view class="muted">取消订单不计入</view></view><view wx:if="{{customer.role === 'owner'}}"><view class="amount">¥{{summary.salesText || '0.00'}}</view><view class="muted">今日全渠道销售</view></view></view>
+    <view class="card row"><view><view class="section-title">今日小程序订单 {{summary.today_orders || 0}} 笔</view><view class="muted">取消订单不计入</view></view><view wx:if="{{manager}}"><view class="amount">¥{{summary.salesText || '0.00'}}</view><view class="muted">今日全渠道销售</view></view></view>
     <view class="card menu" data-page="orders" bindtap="go"><view class="row"><view class="section-title">订单与核销</view><text>›</text></view><view class="muted">按核销码或手机尾号查单，确认后提货</view></view>
     <view class="card menu" data-page="stock" bindtap="go"><view class="row"><view class="section-title">商品库存</view><text>›</text></view><view class="muted">{{summary.low_stock || 0}} 款库存不足 · 查看可售数量</view></view>
-    <block wx:if="{{customer.role === 'owner'}}">
+    <block wx:if="{{manager}}">
       <view class="card menu" data-page="coupons" bindtap="go"><view class="row"><view class="section-title">给客户发券</view><text>›</text></view><view class="muted">选择客户，设置金额与有效期</view></view>
-      <view class="card menu" data-page="team" bindtap="go"><view class="row"><view class="section-title">店员管理</view><text>›</text></view><view class="muted">邀请店员或停用商家权限</view></view>
+      <view class="card menu" data-page="team" bindtap="go"><view class="row"><view class="section-title">商家成员</view><text>›</text></view><view class="muted">查看商家成员，授权请使用电脑后台</view></view>
       <view class="card"><view class="section-title">登录电脑后台</view><view class="muted">生成一次性登录码，在电脑后台输入。5 分钟内有效，重新生成后旧码失效。</view><view wx:if="{{webCode}}" class="code" bindtap="copyCode">{{webCode}}</view><view class="primary {{generating ? 'disabled' : ''}}" style="margin-top:24rpx" bindtap="webCode">{{webCode ? '重新生成登录码' : '生成电脑登录码'}}</view><view wx:if="{{webCode}}" class="link" bindtap="copyCode">复制登录码</view></view>
     </block>
     <view wx:if="{{customer.auth_provider === 'mock'}}" class="notice">当前为模拟登录。商家身份保存在当前测试账号，正式上线时需重新授权微信账号。</view>

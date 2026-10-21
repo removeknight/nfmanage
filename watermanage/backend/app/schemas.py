@@ -107,3 +107,7 @@ class PickupCodeIn(BaseModel):
 
 class AccessCodeIn(BaseModel):
     code: str = Field(min_length=8, max_length=128)
+
+
+class MerchantRoleIn(BaseModel):
+    role: Literal["staff", "deputy", "customer"]

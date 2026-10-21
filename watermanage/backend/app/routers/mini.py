@@ -15,7 +15,7 @@ from ..database import get_db
 from ..models import Customer, CustomerCoupon, Delivery, MiniOrder, MiniOrderItem, Product
 from ..schemas import CouponGrantIn, CouponSettingIn, MiniBindIn, MiniOrderIn, MiniProfileIn, PickupCodeIn
 from ..services.audit import write_log
-from ..services.auth import identity_profile, issue_session, mini_customer, require_owner
+from ..services.auth import identity_profile, issue_session, mini_customer, require_manager
 from ..services.coupons import coupon_info, coupon_settings, grant_welcome, iso_utc, utc_now
 from ..services.mini_orders import ACTIVE_ORDER_STATUSES, cancel_sale, record_sale
 from ..settings import settings
@@ -285,7 +285,7 @@ def cancel_order(order_id: int, authorization: str | None = Header(default=None)
 
 
 # Use the same administrative access boundary as product/customer/delivery APIs.
-@router.get("/merchant/orders", dependencies=[Depends(require_owner)])
+@router.get("/merchant/orders", dependencies=[Depends(require_manager)])
 def merchant_orders(db: Session = Depends(get_db), phone: str | None = None, status: str | None = None):
     query = select(MiniOrder)
     if phone and phone.strip():
@@ -300,14 +300,14 @@ def merchant_orders(db: Session = Depends(get_db), phone: str | None = None, sta
     return [{**_order_info(order), "customer": _contact(order.customer)} for order in orders]
 
 
-@router.post("/merchant/orders/{order_id}/cancel", dependencies=[Depends(require_owner)])
-def merchant_cancel_order(order_id: int, db: Session = Depends(get_db), actor: Customer = Depends(require_owner)):
+@router.post("/merchant/orders/{order_id}/cancel", dependencies=[Depends(require_manager)])
+def merchant_cancel_order(order_id: int, db: Session = Depends(get_db), actor: Customer = Depends(require_manager)):
     order = _locked_order(db, order_id)
     cancel_sale(db, order, actor.name)
     db.commit()
     return {"status": order.status}
 
-@router.get("/merchant/pickup-by-phone", dependencies=[Depends(require_owner)])
+@router.get("/merchant/pickup-by-phone", dependencies=[Depends(require_manager)])
 def pickup_by_phone(phone_suffix: str, db: Session = Depends(get_db)):
     if len(phone_suffix) != 4 or any(char not in "0123456789" for char in phone_suffix):
         raise HTTPException(400, "请输入手机尾号后四位数字")
@@ -319,7 +319,7 @@ def pickup_by_phone(phone_suffix: str, db: Session = Depends(get_db)):
     return [{**_order_info(order), "customer": _contact(order.customer)} for order in orders]
 
 
-@router.get("/merchant/pickup/{code}", dependencies=[Depends(require_owner)])
+@router.get("/merchant/pickup/{code}", dependencies=[Depends(require_manager)])
 def lookup_pickup(code: str, db: Session = Depends(get_db)):
     order = db.scalar(select(MiniOrder).where(MiniOrder.pickup_code == code)
                       .options(selectinload(MiniOrder.items), selectinload(MiniOrder.customer)))
@@ -328,8 +328,8 @@ def lookup_pickup(code: str, db: Session = Depends(get_db)):
     return {**_order_info(order), "customer": _contact(order.customer)}
 
 
-@router.post("/merchant/redeem", dependencies=[Depends(require_owner)])
-def redeem(data: PickupCodeIn, db: Session = Depends(get_db), actor: Customer = Depends(require_owner)):
+@router.post("/merchant/redeem", dependencies=[Depends(require_manager)])
+def redeem(data: PickupCodeIn, db: Session = Depends(get_db), actor: Customer = Depends(require_manager)):
     order = db.scalar(select(MiniOrder).where(MiniOrder.pickup_code == data.code)
                       .options(selectinload(MiniOrder.items)).with_for_update())
     if order is None:
@@ -347,19 +347,19 @@ def redeem(data: PickupCodeIn, db: Session = Depends(get_db), actor: Customer = 
     return _order_info(order)
 
 
-@router.get("/merchant/customers", dependencies=[Depends(require_owner)])
+@router.get("/merchant/customers", dependencies=[Depends(require_manager)])
 def mini_customers(db: Session = Depends(get_db)):
     rows = db.scalars(select(Customer).where(Customer.source == "mini", Customer.wechat_openid.is_not(None)).order_by(Customer.id.desc())).all()
     return [_contact(customer) for customer in rows]
 
 
-@router.get("/merchant/coupon-settings", dependencies=[Depends(require_owner)])
+@router.get("/merchant/coupon-settings", dependencies=[Depends(require_manager)])
 def get_coupon_settings(db: Session = Depends(get_db)):
     row = coupon_settings(db)
     return {"welcome_amount": float(row.welcome_amount), "welcome_validity_days": row.welcome_validity_days, "welcome_usage_type": row.welcome_usage_type}
 
 
-@router.put("/merchant/coupon-settings", dependencies=[Depends(require_owner)])
+@router.put("/merchant/coupon-settings", dependencies=[Depends(require_manager)])
 def set_coupon_settings(data: CouponSettingIn, db: Session = Depends(get_db)):
     row = coupon_settings(db, lock=True)
     before = f"新用户券 ¥{row.welcome_amount}，有效 {row.welcome_validity_days} 天"
@@ -371,8 +371,8 @@ def set_coupon_settings(data: CouponSettingIn, db: Session = Depends(get_db)):
     return {"welcome_amount": float(row.welcome_amount), "welcome_validity_days": row.welcome_validity_days, "welcome_usage_type": row.welcome_usage_type}
 
 
-@router.post("/merchant/coupons", dependencies=[Depends(require_owner)])
-def issue_coupons(data: CouponGrantIn, db: Session = Depends(get_db), actor: Customer = Depends(require_owner)):
+@router.post("/merchant/coupons", dependencies=[Depends(require_manager)])
+def issue_coupons(data: CouponGrantIn, db: Session = Depends(get_db), actor: Customer = Depends(require_manager)):
     coupon_settings(db, lock=True)
     key = "manual:" + hashlib.sha256(data.request_key.encode()).hexdigest()[:48]
     existing = db.scalars(select(CustomerCoupon.id).where(CustomerCoupon.grant_key == key)).all()
@@ -396,7 +396,7 @@ def issue_coupons(data: CouponGrantIn, db: Session = Depends(get_db), actor: Cus
     return {"issued": len(customers), "duplicate_request": False}
 
 
-@router.get("/merchant/coupons", dependencies=[Depends(require_owner)])
+@router.get("/merchant/coupons", dependencies=[Depends(require_manager)])
 def issued_coupons(db: Session = Depends(get_db)):
     now = utc_now(db)
     rows = db.scalars(select(CustomerCoupon).options(selectinload(CustomerCoupon.customer))

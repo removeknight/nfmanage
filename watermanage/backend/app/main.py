@@ -8,7 +8,7 @@ from .database import SessionLocal
 from .models import Customer, Product
 from .routers import all_routers, health_router
 from .settings import settings
-from .services.auth import require_owner
+from .services.auth import require_manager
 
 
 @asynccontextmanager
@@ -46,4 +46,4 @@ app.add_middleware(
 
 for router in all_routers:
     public = router is health_router or router.prefix in {"/api/mini", "/api/access", "/api/merchant"}
-    app.include_router(router, dependencies=[] if public else [Depends(require_owner)])
+    app.include_router(router, dependencies=[] if public else [Depends(require_manager)])

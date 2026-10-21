@@ -52,8 +52,4 @@ Page({
   },
   goShop() { wx.switchTab({ url: '/pages/index/index' }) },
   goMerchant() { wx.navigateTo({ url: '/pages/merchant/home/home' }) },
-  goActivate() {
-    if (!getApp().globalData.miniToken) return this.goProfile()
-    wx.navigateTo({ url: '/pages/merchant/activate/activate' })
-  },
 })

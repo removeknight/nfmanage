@@ -1,7 +1,7 @@
 const { request, checkRole, showError, confirm, orderView } = require('../../../utils/merchant')
 const { startPolling, stopPolling } = require('../../../utils/polling')
 Page({
-  data: { order: null, owner: false, busy: false, loading: true, error: '' },
+  data: { order: null, manager: false, busy: false, loading: true, error: '' },
   onLoad(options) { this._id = Number(options.id) },
   onShow() { startPolling(this, this.load) }, onHide() { stopPolling(this) }, onUnload() { stopPolling(this) },
   onPullDownRefresh() { this.load().finally(() => wx.stopPullDownRefresh()) },
@@ -11,7 +11,7 @@ Page({
     try {
       const customer = await checkRole()
       const order = await request(`/api/merchant/orders/${this._id}`)
-      if (this._pollVisible) this.setData({ order: orderView(order), owner: customer.role === 'owner', error: '' })
+      if (this._pollVisible) this.setData({ order: orderView(order), manager: ['owner', 'deputy'].includes(customer.role), error: '' })
     } catch (e) { if (!quiet || e.status === 401 || e.status === 403) { this.setData({ error: e.message }); showError(e) } }
     finally { this._loading = false; this.setData({ loading: false }) }
   },

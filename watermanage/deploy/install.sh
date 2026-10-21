@@ -258,6 +258,6 @@ for attempt in $(seq 1 30); do
 done
 curl --noproxy '*' -fsS "http://127.0.0.1:${app_port}/" >/dev/null
 echo "部署完成。前端模式：${frontend_mode}；FastAPI 由 Supervisor 管理；管理端口仅监听 127.0.0.1:9001；Nginx 负责入口；PostgreSQL 由 Docker Compose 管理。访问端口：${app_port}"
-echo "首次开通商家：运行 bash deploy/merchant-bootstrap.sh，由指定店主在小程序『我的 → 商家授权』输入一次性授权码。"
+echo "首次开通商家：运行 bash deploy/merchant-bootstrap.sh 查看已绑定客户，再加 --customer-id 客户ID 指定首位店主。"
 echo "电脑后台需要店主登录码：在小程序商家工作台生成，5 分钟内有效；登录后会话有效 8 小时。"
 echo "MINI_AUTH_MODE=mock 仅供测试；切换正式微信登录后，请重新为真实微信账号初始化店主。"

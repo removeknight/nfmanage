@@ -27,9 +27,12 @@ export const actionLabels = {
   mini_order_redeem: "提货核销",
   coupon_grant: "发放优惠券",
   coupon_settings: "优惠券设置",
+  merchant_grant: "商家账号授权",
+  merchant_revoke: "停用商家权限",
+  merchant_login: "商家登录",
 };
 
-export function Modal({ title, close, children }) {
+export function Modal({ title, close, children, description = "请填写信息，保存后立即同步到库存" }) {
   return (
     <div
       className="modal-backdrop"
@@ -39,7 +42,7 @@ export function Modal({ title, close, children }) {
         <header>
           <div>
             <h2>{title}</h2>
-            <p>请填写信息，保存后立即同步到库存</p>
+            <p>{description}</p>
           </div>
           <button className="icon-button" onClick={close}>
             <X size={19} />
