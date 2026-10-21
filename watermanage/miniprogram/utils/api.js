@@ -16,7 +16,16 @@ function request(path, options = {}) {
       error.status = response.statusCode
       reject(error)
     },
-    fail: () => reject(new Error('无法连接农丰水站，请检查网络后重试')),
+    fail: result => {
+      const detail = result.errMsg || 'request:fail'
+      let message = `无法连接农丰水站：${detail}`
+      if (/domain list|url not in|url is not in/i.test(detail)) message = '请求被微信域名校验拦截。开发者工具请开启“不校验合法域名”，手机请使用真机调试并开启调试模式。'
+      else if (/timeout/i.test(detail)) message = '连接农丰水站超时，请检查设备网络后重试。'
+      console.warn('API network failure', { path: path.split('?')[0], detail })
+      const error = new Error(message)
+      error.networkDetail = detail
+      reject(error)
+    },
   }))
 }
 function formatDate(value) {
