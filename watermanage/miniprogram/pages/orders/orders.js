@@ -17,6 +17,7 @@ readingPage({
       const orders = await request('/api/mini/orders')
       if (!this._pollVisible || version !== this._viewVersion) return
       this.setData({ orders: orders.map(order => ({ ...order, totalText: Number(order.total).toFixed(2),
+        receivedText: Number(order.received_total || 0).toFixed(2), canCancel: order.status === '待提货' && !order.paid_at,
         originalText: Number(order.original_total).toFixed(2), discountText: Number(order.discount_amount).toFixed(2),
         timeText: formatDate(order.created_at), redeemedText: formatDate(order.redeemed_at),
         statusClass: order.status === '待提货' ? 'pending' : order.status === '已核销' ? 'done' : 'cancelled',

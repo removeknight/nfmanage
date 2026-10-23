@@ -227,7 +227,7 @@ export default function TransactionForm({
         {isPurchase
           ? "采购后自动重算库存加权均价并记录库存变动前后值。"
           : isSale
-            ? createDelivery ? "开单后扣减库存，生成配送任务并计入销售明细。" : "无需配送，开单后扣减库存，记录电脑订单并计入销售明细。"
+            ? createDelivery ? "开单即按本单金额登记已收款、扣减库存并生成配送任务，请确认已完成线下收款。" : "开单即按本单金额登记已收款并扣减库存，无需另行填写收款金额。"
             : "调价信息会保存原价、新价格、商品和操作人。"}
       </div>
       <div className="form-actions">

@@ -19,6 +19,7 @@ from ..services.auth import identity_profile, issue_session, mini_customer, requ
 from ..services.coupons import coupon_info, coupon_settings, grant_welcome, iso_utc, utc_now
 from ..services.mini_orders import ACTIVE_ORDER_STATUSES, cancel_sale, record_sale
 from ..services.privacy import legal_info, record_acceptance, record_address_choice, validate_acceptance
+from ..services.payments import collect_order, fingerprint, payment_info
 from ..settings import settings
 
 router = APIRouter(prefix="/api/mini", tags=["小程序与商家"])
@@ -74,6 +75,7 @@ def _order_info(order):
             "fulfillment": order.fulfillment, "fulfillment_label": "送货上门" if order.fulfillment == "delivery" else "到店提货",
             "source": order.source, "source_label": "小程序" if order.source == "mini" else "线下电脑录入",
             "total": float(order.total), "original_total": float(order.original_total),
+            **payment_info(order, order.status == "已取消"),
             "discount_amount": float(order.discount_amount), "coupon_id": order.coupon_id,
             "pickup_code": order.pickup_code, "hidden_by_customer": order.hidden_by_customer,
             "address": order.address, "note": order.note, "created_at": iso_utc(order.created_at),
@@ -200,6 +202,17 @@ def catalog(db: Session = Depends(get_db)):
 @router.post("/orders")
 def place_order(data: MiniOrderIn, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     customer = _customer(authorization, db)
+    quantities = {}
+    for line in data.items:
+        quantities[line.product_id] = quantities.get(line.product_id, 0) + line.quantity
+    request_hash = fingerprint({"items": sorted(quantities.items()), "fulfillment": data.fulfillment,
+        "coupon_id": data.coupon_id, "address": data.address.strip(), "note": data.note.strip()})
+    db.scalar(select(Customer.id).where(Customer.id == customer.id).with_for_update())
+    existing = db.scalar(select(MiniOrder).where(MiniOrder.customer_id == customer.id, MiniOrder.request_key == data.request_key))
+    if existing:
+        if existing.request_hash != request_hash:
+            raise HTTPException(409, "该提交编号已有订单，请先查看上次提交结果，避免重复下单")
+        return _order_info(existing)
     # Persist fulfillment for future delivery support; only pickup is open now.
     if data.fulfillment != "pickup":
         raise HTTPException(400, "小程序暂仅支持到店提货，送货上门尚未开放")
@@ -207,9 +220,6 @@ def place_order(data: MiniOrderIn, authorization: str | None = Header(default=No
         raise HTTPException(400, "家庭地址请在“我的 → 修改资料”中填写并保存，到店提货无需提交地址")
     if data.fulfillment == "delivery" and not data.address.strip():
         raise HTTPException(400, "选择送货上门时请填写配送地址")
-    quantities = {}
-    for line in data.items:
-        quantities[line.product_id] = quantities.get(line.product_id, 0) + line.quantity
     products = db.scalars(select(Product).where(Product.id.in_(sorted(quantities))).order_by(Product.id).with_for_update()).all()
     if len(products) != len(quantities):
         raise HTTPException(400, "订单中包含已不存在的商品")
@@ -240,6 +250,7 @@ def place_order(data: MiniOrderIn, authorization: str | None = Header(default=No
         try:
             with db.begin_nested():
                 candidate = MiniOrder(order_no=f"NF{datetime.now():%Y%m%d%H%M%S}{secrets.token_hex(3).upper()}",
+                    request_key=data.request_key, request_hash=request_hash,
                     customer_id=customer.id, source="mini", fulfillment=data.fulfillment,
                     status="待配送" if data.fulfillment == "delivery" else "待提货", original_total=total, discount_amount=discount,
                     total=total-discount, address="", note=data.note.strip(),
@@ -264,6 +275,16 @@ def place_order(data: MiniOrderIn, authorization: str | None = Header(default=No
     db.commit()
     db.refresh(order)
     return _order_info(order)
+
+
+@router.get("/orders/submission/{request_key}")
+def submitted_order(request_key: str, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+    customer = _customer(authorization, db)
+    if not 8 <= len(request_key) <= 64:
+        raise HTTPException(400, "提交编号无效")
+    db.scalar(select(Customer.id).where(Customer.id == customer.id).with_for_update())
+    order = db.scalar(select(MiniOrder).where(MiniOrder.customer_id == customer.id, MiniOrder.request_key == request_key))
+    return {"order": _order_info(order) if order else None}
 
 
 @router.get("/orders")
@@ -314,7 +335,7 @@ def merchant_orders(db: Session = Depends(get_db), phone: str | None = None, sta
 @router.post("/merchant/orders/{order_id}/cancel", dependencies=[Depends(require_manager)])
 def merchant_cancel_order(order_id: int, db: Session = Depends(get_db), actor: Customer = Depends(require_manager)):
     order = _locked_order(db, order_id)
-    cancel_sale(db, order, actor.name)
+    cancel_sale(db, order, actor.name, allow_paid=True)
     db.commit()
     return {"status": order.status}
 
@@ -347,6 +368,7 @@ def redeem(data: PickupCodeIn, db: Session = Depends(get_db), actor: Customer = 
         raise HTTPException(404, "提货码不存在")
     if order.status not in ACTIVE_ORDER_STATUSES:
         raise HTTPException(409, "订单已完成、核销、取消或拒绝，不能重复核销")
+    collect_order(db, order, actor.name)
     now = utc_now(db)
     previous = order.status
     order.status, order.redeemed_at = "已核销", now

@@ -68,22 +68,22 @@ export default function SalesPage({ sales, getOverview, showError }) {
     result[category].count += 1;
     result[category].quantity += row.quantity;
     result[category].total += Number(row.total);
-    if (row.cost_price == null) result[category].unknownCost += 1;
+    if (row.profit == null) result[category].unknownCost += 1;
     else
       result[category].profit +=
-        Number(row.total) - row.quantity * Number(row.cost_price);
+        Number(row.profit);
     return result;
   }, {});
   const total = rows.reduce((value, row) => value + Number(row.total), 0);
   const knownProfit = rows.reduce(
     (value, row) =>
-      row.cost_price == null
+      row.profit == null
         ? value
         : value +
-          Number(row.total) - row.quantity * Number(row.cost_price),
+          Number(row.profit),
     0,
   );
-  const unknownCostCount = rows.filter((row) => row.cost_price == null).length;
+  const unknownCostCount = rows.filter((row) => row.profit == null).length;
   const quantity = rows.reduce((n, row) => n + row.quantity, 0);
   return (
     <>
@@ -116,7 +116,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
         <>
           <section className="stats-grid sales-summary-cards">
             <SummaryCard
-              label="筛选销售额"
+              label="筛选净实收"
               value={money(total)}
               note={`${rows.length} 笔销售记录`}
             />
@@ -126,11 +126,11 @@ export default function SalesPage({ sales, getOverview, showError }) {
               note={
                 unknownCostCount
                   ? `${unknownCostCount} 笔历史成本未记录，未计入`
-                  : "按销售时移动均价计算"
+                  : "实收减销售时成本，退款反向冲减"
               }
             />
             <SummaryCard
-              label="销售件数"
+              label="收退款净件数"
               value={
                 <>
                   {quantity}
@@ -155,7 +155,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
               <div>
                 <span className="section-kicker">SALES REPORT</span>
                 <h2>销售明细与分类统计</h2>
-                <p>查看销售记录、分类汇总和单笔利润</p>
+                <p>按收款／退款时间统计；未收款订单不计收入和利润，退款保留负数流水</p>
               </div>
               <select
                 className="period-select"
@@ -206,7 +206,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
               <table>
                 <thead>
                   <tr>
-                    <th>时间</th>
+                    <th>收退款时间</th>
                     <th>商品</th>
                     <th>品类</th>
                     <th>客户</th>
@@ -214,7 +214,7 @@ export default function SalesPage({ sales, getOverview, showError }) {
                     <th>交付方式</th>
                     <th>数量</th>
                     <th>销售单价</th>
-                    <th>金额</th>
+                    <th>实收／退款金额</th>
                     <th>利润</th>
                     <th>经办人</th>
                   </tr>
@@ -222,12 +222,12 @@ export default function SalesPage({ sales, getOverview, showError }) {
                 <tbody>
                   {rows.map((row) => {
                     const profit =
-                      row.cost_price == null
+                      row.profit == null
                         ? null
-                        : Number(row.total) - row.quantity * Number(row.cost_price);
+                        : Number(row.profit);
                     return (
                       <tr key={row.id}>
-                        <td>{formatDate(row.created_at)}</td>
+                        <td>{formatDate(row.created_at)}<small className="block muted">{row.receipt_kind === "refund" ? "退款冲减" : "收款入账"}</small></td>
                         <td>
                           <b>
                             {row.product?.brand} {row.product?.name}
@@ -294,7 +294,7 @@ function SalesOverview({ overview, loading, range, setRange }) {
         <div>
           <span className="section-kicker">LIVE SALES AGGREGATION</span>
           <h2>销售总览</h2>
-          <p>按所选日期范围实时汇总销售流水</p>
+          <p>按所选收退款日期范围汇总，保留电脑／小程序来源；未收款不计入</p>
         </div>
         <div className="range-presets">
           <button onClick={() => choose(1)}>最近一天</button>
@@ -323,7 +323,7 @@ function SalesOverview({ overview, loading, range, setRange }) {
       </div>
       <div className="stats-grid sales-summary-cards">
         <SummaryCard
-          label="销售件数"
+          label="收退款净件数"
           value={
             <>
               {overview.total_quantity || 0}
@@ -333,12 +333,12 @@ function SalesOverview({ overview, loading, range, setRange }) {
           note="所选时间范围"
         />
         <SummaryCard
-          label="销售金额"
+          label="净实收金额"
           value={money(overview.total_amount || 0)}
-          note="按实际销售流水汇总"
+          note="实际收款减退款"
         />
         <SummaryCard
-          label="销售单数"
+          label="收退款记录数"
           value={
             <>
               {overview.order_count || 0}
@@ -347,6 +347,7 @@ function SalesOverview({ overview, loading, range, setRange }) {
           }
           note="销售记录数量"
         />
+        <SummaryCard label="实收利润" value={money(overview.total_profit || 0)} note={overview.unknown_cost_count ? `${overview.unknown_cost_count} 笔成本未知，未计入利润` : "按入账时的历史成本计算"} />
       </div>
       <div className="ranking-grid">
         <RankTable

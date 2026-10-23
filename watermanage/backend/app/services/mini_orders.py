@@ -4,13 +4,14 @@ from sqlalchemy import select
 from ..models import Delivery, Product, Transaction
 from .audit import write_log
 from .coupons import release_coupon, utc_now
+from .payments import refund_sales
 
 CENT = Decimal("0.01")
 ACTIVE_ORDER_STATUSES = ("待提货", "待配送", "配送中")
 
 
 def record_sale(db, order):
-    """Record immediate stock and financial effects inside the checkout transaction."""
+    """Record stock debit and net sale value; receipts are posted at pickup."""
     items = sorted(order.items, key=lambda item: item.product_id)
     restricted = order.coupon_usage_type == "large_bucket"
     eligible_total = sum((item.subtotal for item in items if not restricted or item.category == "大桶水"), Decimal(0))
@@ -43,12 +44,14 @@ def record_sale(db, order):
                   f"商城订单 {order.order_no} 下单成功，出库 {item.quantity} 件")
 
 
-def cancel_sale(db, order, operator):
+def cancel_sale(db, order, operator, allow_paid=False):
     """Restore stock/cost, void linked sales, and release the coupon exactly once."""
     if order.status == "已取消":
         return
     if order.status not in ACTIVE_ORDER_STATUSES:
         raise HTTPException(409, "只有未完成的订单可以取消，已核销或已完成订单不能取消")
+    if order.paid_at and not allow_paid:
+        raise HTTPException(409, "这笔订单已登记收款，请联系商家退款并取消")
     deliveries = db.scalars(select(Delivery).where(Delivery.mini_order_id == order.id).with_for_update()).all()
     if any(row.status == "已完成" for row in deliveries):
         raise HTTPException(409, "配送已完成，不能直接取消订单")
@@ -71,6 +74,7 @@ def cancel_sale(db, order, operator):
             sale.voided_at = now
         write_log(db, "mini_order_cancel", product, operator, f"库存 {before}", f"库存 {product.stock}",
                   f"商城订单 {order.order_no} 取消，退回 {item.quantity} 件并冲销销售流水")
+    refund_sales(db, order, sales, operator, now)
     release_coupon(db, order)
     for delivery in deliveries:
         delivery.status, delivery.completed_at = "已取消", None

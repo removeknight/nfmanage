@@ -1,5 +1,6 @@
-from .models import Customer, Delivery, Product, Transaction
+from .models import Customer, Delivery, Product, SaleReceipt, Transaction
 from .services.coupons import iso_utc
+from .services.payments import payment_info
 
 
 def product_info(product: Product | None):
@@ -36,12 +37,24 @@ def transaction_info(row: Transaction):
         "unit_price": row.unit_price,
         "cost_price": row.cost_price,
         "total": row.total,
+        **payment_info(row, bool(row.voided_at)),
         "note": row.note,
         "operator": row.operator,
         "created_at": iso_utc(row.created_at),
         "product": product_info(row.product),
         "customer": {"id": row.customer.id, "name": row.customer.name, "kind": row.customer.kind, "source": row.customer.source, "phone": row.customer.phone, "address": row.customer.address} if row.customer else None,
     }
+
+
+def receipt_info(row: SaleReceipt):
+    sale = row.sale
+    return {**transaction_info(sale), "id": row.id, "sale_id": sale.id,
+            "receipt_kind": row.kind, "order_amount": sale.total,
+            "quantity": row.quantity, "total": row.amount, "received_amount": row.amount,
+            "receipt_cost": row.cost_amount,
+            "profit": row.amount-row.cost_amount if row.cost_amount is not None else None,
+            "created_at": iso_utc(row.occurred_at), "ordered_at": iso_utc(sale.created_at),
+            "operator": row.operator}
 
 
 def delivery_info(row: Delivery):

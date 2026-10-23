@@ -5,7 +5,7 @@
   <view wx:if="{{loading}}" class="empty">正在加载…</view>
   <block wx:if="{{customer}}">
     <view class="metrics"><view class="card metric" data-page="orders" bindtap="go"><view class="metric-number">{{summary.pending || 0}}</view><view class="muted">待提货订单 ›</view></view><view class="card metric"><view class="metric-number">{{summary.today_redeemed || 0}}</view><view class="muted">今日已核销</view></view></view>
-    <view class="card row"><view><view class="section-title">今日小程序订单 {{summary.today_orders || 0}} 笔</view><view class="muted">取消订单不计入</view></view><view wx:if="{{manager}}"><view class="amount">¥{{summary.salesText || '0.00'}}</view><view class="muted">今日全渠道销售</view></view></view>
+    <view class="card row"><view><view class="section-title">今日小程序订单 {{summary.today_orders || 0}} 笔</view><view class="muted">取消订单不计入</view></view><view wx:if="{{manager}}"><view class="amount">¥{{summary.salesText || '0.00'}}</view><view class="muted">今日全渠道净实收</view></view></view>
     <view class="card menu" data-page="orders" bindtap="go"><view class="row"><view class="section-title">订单与核销</view><text>›</text></view><view class="muted">按核销码或手机尾号查单，确认后提货</view></view>
     <view class="card menu" data-page="stock" bindtap="go"><view class="row"><view class="section-title">商品库存</view><text>›</text></view><view class="muted">{{summary.low_stock || 0}} 款库存不足 · 查看可售数量</view></view>
     <block wx:if="{{manager}}">

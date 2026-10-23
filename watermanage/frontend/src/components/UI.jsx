@@ -19,6 +19,8 @@ export const actionLabels = {
   product_reactivate: "商品重新上架",
   product_image: "商品图片设置",
   privacy_settings: "隐私指引与商家联系设置",
+  order_payment: "订单自动收款",
+  order_refund: "取消订单退款",
   delivery_status: "配送状态",
   order_reserve: "订单预留库存",
   order_release: "释放预留库存",

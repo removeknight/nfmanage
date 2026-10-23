@@ -18,6 +18,7 @@ import ComputerOrderPage from "./features/orders/ComputerOrderPage";
 import CouponPage from "./features/coupons/CouponPage";
 import PrivacyPage from "./features/privacy/PrivacyPage";
 import { useAutoRefresh } from "./utils/useAutoRefresh";
+import { pendingSale, rememberSale, forgetSale } from "./utils/orderSubmission";
 
 const initialData = {
   dashboard: {},
@@ -47,6 +48,10 @@ function AdminApp({ account, onLogout }) {
     () => localStorage.getItem("watermanage-theme") || "ocean",
   );
   const [formReset, setFormReset] = useState(0);
+  const [pendingOrder, setPendingOrder] = useState(() => {
+    try { return pendingSale(account.id); } catch { return null; }
+  });
+  const actionBusy = useRef(false);
   const requestVersion = useRef(0);
   const knownOrderIds = useRef(null);
   useEffect(() => {
@@ -109,16 +114,21 @@ function AdminApp({ account, onLogout }) {
   }, [toast]);
 
   async function runAction(action, success, options = {}) {
+    if (actionBusy.current) return;
+    actionBusy.current = true;
     setBusy(true);
+    let committed = false;
     try {
       await action();
+      committed = true;
+      options.onSuccess?.();
       if (!options.keepOpen) setModal("");
       setToast(success);
       await refresh();
-      options.onSuccess?.();
     } catch (error) {
-      setToast(error.message);
+      setToast(committed ? `${success}，列表刷新失败，请稍后刷新页面` : error.message);
     } finally {
+      actionBusy.current = false;
       setBusy(false);
     }
   }
@@ -135,6 +145,7 @@ function AdminApp({ account, onLogout }) {
   }
   function saveTransaction(event) {
     event.preventDefault();
+    if (actionBusy.current) return;
     const body = formValues(event);
     const isSale = modal === "sale" || modal === "computer-sale";
     const deliveryField =
@@ -143,21 +154,46 @@ function AdminApp({ account, onLogout }) {
     for (const key of ["product_id", "quantity", "unit_price"])
       if (body[key] !== undefined) body[key] = Number(body[key]);
     if (body.customer_id) body.customer_id = Number(body.customer_id);
-    const action = modal.startsWith("purchase")
-      ? api.purchase(body)
-      : isSale
-        ? api.sale(body)
-        : api.adjustPrice(body);
+    if (isSale) {
+      try {
+        const previous = pendingSale(account.id);
+        if (previous) { setPendingOrder(previous); return retrySale(previous); }
+        const payload = rememberSale(account.id, body);
+        setPendingOrder(payload);
+        return sendSale(payload);
+      } catch { setToast("无法保存开单信息，请检查浏览器存储后重试，订单未发送"); return; }
+    }
+    const action = modal.startsWith("purchase") ? () => api.purchase(body) : () => api.adjustPrice(body);
     const message = modal.startsWith("purchase")
       ? "采购入库成功"
-      : isSale
-        ? body.create_delivery ? "开单成功，已生成配送任务" : "电脑订单已保存，无需配送"
-        : "售价已调整";
-    const keepOpen = modal.startsWith("purchase") || isSale;
-    runAction(() => action, message, {
+      : "售价已调整";
+    const keepOpen = modal.startsWith("purchase");
+    runAction(action, message, {
       keepOpen,
       onSuccess: () => keepOpen && setFormReset((n) => n + 1),
     });
+  }
+  function retrySale(payload = pendingOrder) {
+    if (!payload || actionBusy.current) return;
+    const product = [...data.products, ...data.inactiveProducts].find(row => row.id === payload.product_id);
+    const customer = data.customers.find(row => row.id === payload.customer_id);
+    if (!window.confirm(`核对并重试上一笔开单：${customer?.name || `客户 #${payload.customer_id}`}，${product ? `${product.brand} ${product.name}` : `商品 #${payload.product_id}`} ×${payload.quantity}，¥${(payload.quantity * payload.unit_price).toFixed(2)}。\n沿用原内容和提交编号；已保存则返回原单，尚未保存则补交原单。当前表单改动不会加入这次重试。`)) return;
+    return sendSale(payload);
+  }
+  function sendSale(payload) {
+    return runAction(async () => {
+      try {
+        await api.sale(payload);
+      } catch (error) {
+        if ([400, 404, 422].includes(error.status)) {
+          forgetSale(account.id, payload.request_key);
+          setPendingOrder(null);
+        } else error.message += "；上次提交已保留，请使用“核对上次开单”，避免重复录入";
+        throw error;
+      }
+      forgetSale(account.id, payload.request_key);
+      setPendingOrder(null);
+    }, "开单成功，已登记收款", { keepOpen: true, onSuccess: () => setFormReset(n => n + 1) });
   }
   async function updateDelivery(id, status, operator) {
     try {
@@ -193,7 +229,7 @@ function AdminApp({ account, onLogout }) {
     }
   }
   async function cancelMiniOrder(order) {
-    if (!window.confirm(`取消订单 ${order.order_no}？将恢复库存和所用优惠券，并冲销销售金额。优惠券保留原有效期。`)) return;
+    if (!window.confirm(`取消订单 ${order.order_no}？将恢复库存和所用优惠券。${order.paid_at ? `此单已收款，请确认已向顾客线下退回 ¥${Number(order.received_total).toFixed(2)}，系统会登记退款并冲减实收及利润。` : '此单未收款，不产生收入或退款。'}优惠券保留原有效期。`)) return;
     try {
       await api.cancelMiniOrder(order.id);
       await refresh();
@@ -323,7 +359,10 @@ function AdminApp({ account, onLogout }) {
             {toast}
           </div>
         )}
-        <div className="page-content">{pageContent[page]}</div>
+        <div className="page-content">
+          {pendingOrder && <div className="pending-sale" role="status"><span>上一笔开单结果待确认，请先核对后再录入新单。</span><button type="button" className="secondary-btn" disabled={busy} onClick={() => retrySale()}>核对上次开单</button></div>}
+          {pageContent[page]}
+        </div>
       </main>
       {modal && (
         <Modal title={modalTitle} close={() => setModal("")}>

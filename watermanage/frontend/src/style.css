@@ -46,7 +46,16 @@ button {
   display: flex;
   flex-direction: column;
   z-index: 5;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #71869a transparent;
 }
+.sidebar > * { flex-shrink: 0; }
+.pending-sale { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px; margin-bottom: 20px; background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: 12px; }
 .brandmark {
   display: flex;
   align-items: center;

@@ -1,16 +1,17 @@
 const { readingPage } = require('../../utils/reading')
 const { request, saveCustomer } = require('../../utils/api')
 const { startPolling, stopPolling, syncCoupons } = require('../../utils/polling')
+const { pendingOrder, rememberOrder, forgetOrder, sameItems } = require('../../utils/checkout')
 const app = getApp()
 readingPage({
   data: {
     products: [], grouped: [], categories: [], activeCategory: '全部',
     cart: {}, cartCount: 0, cartTotal: '0.00', loading: false, checkoutLines: [], customer: null,
-    orderNote: '', showCheckout: false, submitting: false,
+    orderNote: '', showCheckout: false, submitting: false, hasPendingOrder: false,
     usableCoupons: [], couponOptions: ['不使用优惠券'], couponIndex: 0, selectedCouponId: null,
     discountTotal: '0.00', payableTotal: '0.00',
   },
-  onShow() { this.setData({ customer: app.globalData.customer }); startPolling(this, this.loadProducts) },
+  onShow() { this.setData({ customer: app.globalData.customer, hasPendingOrder: !!pendingOrder() }); startPolling(this, this.loadProducts) },
   onHide() { stopPolling(this) },
   onUnload() { stopPolling(this) },
   async loadProducts(quiet = false) {
@@ -90,8 +91,9 @@ readingPage({
     this.selectCouponIndex(chooseBest && usableCoupons.length ? 1 : usableCoupons.findIndex(coupon => coupon.id === previousId) + 1)
   },
   async openCheckout() {
-    if (!this.data.cartCount) return
     if (!app.globalData.customer) return wx.navigateTo({ url: '/pages/profile/profile' })
+    if (pendingOrder()) return this.recoverOrder()
+    if (!this.data.cartCount) return
     try {
       const [coupons, customer] = await Promise.all([request('/api/mini/coupons'), request('/api/mini/me')])
       if (!this._pollVisible) return
@@ -110,16 +112,60 @@ readingPage({
   },
   cancelCheckout() { if (!this.data.submitting) this.setData({ showCheckout: false }) },
   async placeOrder() {
-    if (this.data.submitting) return
-    this.setData({ submitting: true })
+    if (this._orderSubmitting) return
+    if (pendingOrder()) return this.recoverOrder()
     const items = Object.entries(this.data.cart).map(([product_id, quantity]) => ({ product_id: Number(product_id), quantity }))
+    if (!items.length) return
+    let payload
+    try { payload = rememberOrder({ items, fulfillment: 'pickup', note: this.data.orderNote.trim(), coupon_id: this.data.selectedCouponId }) }
+    catch (_) { return wx.showToast({ title: '无法保存提交信息，请检查手机存储后重试', icon: 'none' }) }
+    return this.submitOrder(payload)
+  },
+  async recoverOrder() {
+    if (this._orderSubmitting) return
+    const payload = pendingOrder()
+    if (!payload) return this.setData({ hasPendingOrder: false })
+    this._orderSubmitting = true
+    this.setData({ submitting: true })
     try {
-      const order = await request('/api/mini/orders', { method: 'POST', data: { items, fulfillment: 'pickup', note: this.data.orderNote.trim(), coupon_id: this.data.selectedCouponId } })
-      this.setData({ cart: {}, checkoutLines: [], cartCount: 0, cartTotal: '0.00', showCheckout: false, orderNote: '', couponIndex: 0, selectedCouponId: null })
-      wx.showModal({ title: '下单成功', content: `提货码 ${order.pickup_code}\n应付 ¥${Number(order.total).toFixed(2)}\n请凭提货码到店提货，可在“我的订单”中查看。`, confirmText: '查看订单', cancelText: '继续选购', success: result => { if (result.confirm) wx.navigateTo({ url: '/pages/orders/orders' }) } })
+      const result = await request(`/api/mini/orders/submission/${encodeURIComponent(payload.request_key)}`)
+      if (result.order) return this.orderSaved(result.order, payload)
+      const choice = await new Promise(resolve => wx.showModal({ title: '上次订单尚未提交成功', content: '是否重试上次订单？会沿用原商品、数量、优惠券和提交编号，避免重复下单。当前购物车的改动不会加入这次重试。', confirmText: '重试原单', cancelText: '稍后处理', success: resolve, fail: () => resolve({ confirm: false }) }))
+      if (choice.confirm) {
+        this._orderSubmitting = false
+        return await this.submitOrder(payload)
+      }
+    } catch (error) { wx.showModal({ title: '暂未确认订单结果', content: `${error.message}\n请稍后点击“核对上次订单”，不要另行重复下单。`, showCancel: false }) }
+    finally { this._orderSubmitting = false; this.setData({ submitting: false, hasPendingOrder: !!pendingOrder() }) }
+  },
+  async submitOrder(payload) {
+    if (this._orderSubmitting) return
+    this._orderSubmitting = true
+    this.setData({ submitting: true, hasPendingOrder: true })
+    try {
+      const order = await request('/api/mini/orders', { method: 'POST', data: payload })
+      this.orderSaved(order, payload)
+    } catch (error) {
+      let rejected = false
+      if ([400, 404, 409, 422].includes(error.status)) {
+        try {
+          const result = await request(`/api/mini/orders/submission/${encodeURIComponent(payload.request_key)}`)
+          if (result.order) return this.orderSaved(result.order, payload)
+          forgetOrder(payload.request_key)
+          rejected = true
+        } catch (_) { /* Keep the original key until the result can be confirmed. */ }
+      }
+      wx.showModal({ title: rejected ? '订单未提交' : '订单结果待确认', content: rejected ? error.message : `${error.message}\n已保留本次提交，请点击“核对上次订单”继续，避免重复下单。`, showCancel: false })
       this.loadProducts()
-    } catch (error) { wx.showToast({ title: error.message, icon: 'none' }); this.loadProducts() }
-    finally { this.setData({ submitting: false }) }
+    } finally { this._orderSubmitting = false; this.setData({ submitting: false, hasPendingOrder: !!pendingOrder() }) }
+  },
+  orderSaved(order, payload) {
+    forgetOrder(payload.request_key)
+    const items = Object.entries(this.data.cart).map(([product_id, quantity]) => ({ product_id: Number(product_id), quantity }))
+    if (sameItems(items, payload.items)) this.updateCart({})
+    this.setData({ showCheckout: false, hasPendingOrder: false, orderNote: '', couponIndex: 0, selectedCouponId: null })
+    wx.showModal({ title: '订单已确认', content: `提货码 ${order.pickup_code}\n应付 ¥${Number(order.total).toFixed(2)} · ${order.status}\n请在到店提货时付款，可在“我的订单”中查看。`, confirmText: '查看订单', cancelText: '继续选购', success: result => { if (result.confirm) wx.navigateTo({ url: '/pages/orders/orders' }) } })
+    this.loadProducts()
   },
   goMe() { wx.switchTab({ url: '/pages/me/me' }) },
 })

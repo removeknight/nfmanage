@@ -57,6 +57,10 @@ class Transaction(Base):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     cost_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
     total: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    received_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    request_key: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     note: Mapped[str] = mapped_column(String(300), default="")
     operator: Mapped[str] = mapped_column(String(80), default="管理员")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
@@ -92,6 +96,7 @@ class Delivery(Base):
 
 class MiniOrder(Base):
     __tablename__ = "mini_orders"
+    __table_args__ = (UniqueConstraint("customer_id", "request_key", name="uq_mini_order_submission"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     order_no: Mapped[str] = mapped_column(String(40), unique=True, index=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
@@ -100,6 +105,10 @@ class MiniOrder(Base):
     fulfillment: Mapped[str] = mapped_column(String(20), default="pickup")
     canceled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     total: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    received_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    request_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     original_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
     discount_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
     coupon_id: Mapped[int | None] = mapped_column(ForeignKey("customer_coupons.id"), nullable=True)
@@ -200,6 +209,20 @@ class PrivacySetting(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     operator_name: Mapped[str] = mapped_column(String(120), default="农丰水站")
     contact_phone: Mapped[str] = mapped_column(String(40), default="13324205796")
+
+
+class SaleReceipt(Base):
+    __tablename__ = "sale_receipts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(12))
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    cost_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 4), nullable=True)
+    quantity: Mapped[int] = mapped_column(Integer)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+    dedupe_key: Mapped[str] = mapped_column(String(80), unique=True)
+    operator: Mapped[str] = mapped_column(String(120))
+    sale: Mapped[Transaction] = relationship()
 
 
 class LegalDocument(Base):

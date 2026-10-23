@@ -6,6 +6,7 @@
   </view>
 
   <view class="hero"><view class="hero-tag">每日好水 · 品质优选</view><view class="hero-title">喝好水，生活更自在</view><view class="hero-copy">下单即成功，凭六位提货码到店提货</view><view class="hero-bubbles">滴 · 泉 · 水</view></view>
+  <view wx:if="{{hasPendingOrder}}" class="pending-order"><text>上次订单结果待确认</text><button class="secondary-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="recoverOrder">核对上次订单</button></view>
 
   <scroll-view class="category-bar" scroll-x>
     <view wx:for="{{categories}}" wx:key="*this" class="category-chip {{activeCategory === item ? 'selected' : ''}}" data-category="{{item}}" bindtap="selectCategory">{{item}}</view>

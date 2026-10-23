@@ -5,7 +5,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Delivery, Product, Transaction
+from ..models import Delivery, Product, SaleReceipt, Transaction
 from ..services.coupons import utc_now
 from ..services.reporting_time import SHOP_TIMEZONE, start_of_day_utc
 
@@ -16,8 +16,8 @@ router = APIRouter(prefix="/api", tags=["经营概览"])
 def dashboard(db: Session = Depends(get_db)):
     today = start_of_day_utc(utc_now(db).replace(tzinfo=timezone.utc).astimezone(SHOP_TIMEZONE).date())
     sale_total = db.scalar(
-        select(func.coalesce(func.sum(Transaction.total), 0)).where(
-            Transaction.kind == "sale", Transaction.voided_at.is_(None), Transaction.created_at >= today
+        select(func.coalesce(func.sum(SaleReceipt.amount), 0)).where(
+            SaleReceipt.occurred_at >= today
         )
     ) or 0
     sale_count = db.scalar(

@@ -81,7 +81,7 @@ export default function MiniOrderPage({ orders, cancelOrder, refresh }) {
   async function redeem() {
     if (busy || !pickup || !activeOrder(pickup)) return;
     const selected = pickup;
-    if (!window.confirm(`确认已向 ${selected.customer.name}（${selected.customer.phone || "未填写手机号"}）交付商品？\n订单：${selected.order_no}\n应付：${money(selected.total)}\n确认后完成本笔订单核销。`)) return;
+    if (!window.confirm(`确认已向 ${selected.customer.name}（${selected.customer.phone || "未填写手机号"}）交付商品并收到优惠后款项？\n订单：${selected.order_no}\n优惠后金额：${money(selected.total)}\n确认后完成核销并自动登记收款，已入账订单不会重复收款。`)) return;
     lookupVersion.current += 1;
     setBusy(true); setMessage("");
     try {
@@ -121,10 +121,10 @@ export default function MiniOrderPage({ orders, cancelOrder, refresh }) {
       </div>}
       {pickup && <div className="pickup-result">
         <h4>核对本次提货</h4><b>{pickup.customer.name} · {pickup.customer.phone || "未填写手机号"} · {pickup.status}</b>
-        <p>{pickup.order_no} · {formatDate(pickup.created_at)} · 应付 {money(pickup.total)}</p>
+        <p>{pickup.order_no} · {formatDate(pickup.created_at)} · 应付 {money(pickup.total)}</p><p>实收 {money(pickup.received_total)} · {pickup.payment_status}</p>
         {pickup.items.map(item => <p key={item.product_id}>{item.brand} {item.name} · {item.capacity} × {item.quantity}</p>)}
         <p className="muted">联系地址：{pickup.address || "未填写"}</p>
-        <button className="primary-btn" disabled={busy || !activeOrder(pickup)} onClick={redeem}>确认提货核销</button>
+        <button className="primary-btn" disabled={busy || !activeOrder(pickup)} onClick={redeem}>确认收款并提货核销</button>
       </div>}
     </section>
     <section className="panel table-panel">
@@ -146,7 +146,7 @@ export default function MiniOrderPage({ orders, cancelOrder, refresh }) {
           <td>{order.customer.name}</td><td className="order-phone">{order.customer.phone || "—"}</td>
           <td>{order.items.map(item => <div className="mini-order-line" key={item.product_id}>{item.brand} {item.name} · {item.capacity} × {item.quantity}<small className="block muted">单价 {money(item.unit_price)}</small></div>)}</td>
           <td>{order.address}{order.note && <small className="block muted">备注：{order.note}</small>}</td>
-          <td><b>{money(order.total)}</b>{order.discount_amount > 0 && <small className="block muted">原价 {money(order.original_total)} / 优惠 {money(order.discount_amount)}</small>}</td>
+          <td><b>应收 {money(order.total)}</b><small className="block">实收 {money(order.received_total)} · {order.payment_status}</small>{order.discount_amount > 0 && <small className="block muted">原价 {money(order.original_total)} / 优惠 {money(order.discount_amount)}</small>}</td>
           <td><span className={`delivery-state ${order.status === "已核销" ? "done" : order.status !== "待提货" ? "cancelled" : ""}`}>{order.status}</span>{order.redeemed_at && <small className="block muted">{formatDate(order.redeemed_at)}</small>}</td>
           <td>{activeOrder(order) ? <div className="row-actions"><button className="row-action" disabled={busy} onClick={() => selectFromTable(order)}><Check size={14} /> 提货核销</button><button className="row-action danger-action" disabled={busy} onClick={() => cancelOrder(order)}>取消订单</button></div> : "—"}</td>
         </tr>)}</tbody></table>

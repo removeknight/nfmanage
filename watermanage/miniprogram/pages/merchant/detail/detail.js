@@ -22,7 +22,7 @@ readingPage({
     const order = this.data.order
     this.setData({ busy: true })
     try {
-      const content = cancel ? '取消订单后将还原库存和优惠券，确认取消？' : `确认已向 ${order.contact_name}（${order.contact_phone}）交付本单全部商品？核销后不能重复使用。`
+      const content = cancel ? `取消后还原库存和优惠券。${order.paid_at ? `请确认已线下退款 ¥${order.receivedText}，系统会登记退款并冲减实收及利润。` : '本单未收款，无需退款。'}确认取消？` : `确认已收到优惠后款项 ¥${order.totalText}，并向 ${order.contact_name}（${order.contact_phone}）交付全部商品？核销时自动入账，已入账订单不重复收款。`
       if (!(await confirm(content))) return
       await request(cancel ? `/api/merchant/orders/${order.id}/cancel` : '/api/merchant/redeem', { method: 'POST', data: cancel ? {} : { code: order.pickup_code } })
       wx.showToast({ title: cancel ? '订单已取消' : '核销成功' })

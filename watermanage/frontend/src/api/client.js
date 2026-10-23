@@ -10,7 +10,9 @@ async function request(path, options = {}) {
     if (!response.ok) {
       expireSession(response.status);
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || (response.status === 413 ? "图片不能超过 5MB" : "操作失败，请稍后重试"));
+      const failure = new Error(typeof error.detail === "string" ? error.detail : response.status === 413 ? "图片不能超过 5MB" : "操作失败，请检查填写信息后重试");
+      failure.status = response.status;
+      throw failure;
     }
     return await response.json();
   } catch (error) {

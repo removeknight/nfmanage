@@ -18,6 +18,7 @@ function confirm(content) {
 }
 function orderView(order) {
   return { ...order, totalText: Number(order.total).toFixed(2), originalText: Number(order.original_total).toFixed(2),
+    receivedText: Number(order.received_total || 0).toFixed(2), paidText: formatDate(order.paid_at),
     discountText: Number(order.discount_amount).toFixed(2), timeText: formatDate(order.created_at),
     items: order.items.map(item => ({ ...item, priceText: Number(item.unit_price).toFixed(2), subtotalText: Number(item.subtotal).toFixed(2) })) }
 }

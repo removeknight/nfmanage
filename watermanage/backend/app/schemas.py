@@ -35,6 +35,7 @@ class StockIn(BaseModel):
 
 
 class SaleIn(StockIn):
+    request_key: str = Field(min_length=8, max_length=64)
     customer_id: int
     create_delivery: bool = True
     address: str = ""
@@ -76,6 +77,7 @@ class MiniOrderLineIn(BaseModel):
 
 class MiniOrderIn(BaseModel):
     model_config = {"str_strip_whitespace": True}
+    request_key: str = Field(min_length=8, max_length=64)
     items: list[MiniOrderLineIn] = Field(min_length=1, max_length=50)
     address: str = Field(default="", max_length=300)
     fulfillment: Literal["pickup", "delivery"] = "pickup"

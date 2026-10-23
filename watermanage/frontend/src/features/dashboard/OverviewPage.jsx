@@ -69,9 +69,9 @@ export default function OverviewPage({
         <Stat
           icon={CircleDollarSign}
           tone="blue"
-          label="今日销售额"
+          label="今日净实收"
           value={money(data.sales_today)}
-          note="实时统计 · 今日累计"
+          note="今日收款减退款"
           trend="经营中"
           onClick={() => setPage("销售明细")}
         />

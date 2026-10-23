@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
-from ..models import Customer, MerchantMember, MiniOrder, Product, Transaction
+from ..models import Customer, MerchantMember, MiniOrder, Product, SaleReceipt, Transaction
 from ..schemas import AccessCodeIn, CouponGrantIn, PickupCodeIn
 from ..services.audit import write_log
 from ..services.auth import MANAGER_ROLES, ROLE_LABELS, get_session, identity_profile, issue_session, require_merchant, require_manager, role_for
@@ -61,8 +61,7 @@ def summary(customer: Customer = Depends(require_merchant), db: Session = Depend
     low = db.scalar(select(func.count()).select_from(Product).where(Product.active.is_(True), Product.stock - Product.reserved_stock <= Product.warning_stock))
     result = {"customer": identity_profile(db, customer), "pending": pending, "today_orders": today, "today_redeemed": redeemed, "low_stock": low}
     if role_for(db, customer) in MANAGER_ROLES:
-        total = db.scalar(select(func.sum(Transaction.total)).where(
-            Transaction.kind == "sale", Transaction.voided_at.is_(None), Transaction.created_at >= start))
+        total = db.scalar(select(func.sum(SaleReceipt.amount)).where(SaleReceipt.occurred_at >= start))
         result["today_sales"] = float(total or 0)
     return result
 

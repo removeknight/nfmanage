@@ -94,3 +94,5 @@ page {
 .reading-large .section-note { display: none; }
 .reading-large .checkout-actions { flex-direction: column; }
 .reading-large .checkout-actions button { flex: none; width: 100%; }
+.pending-order { display: flex; align-items: center; flex-wrap: wrap; gap: 16rpx; padding: 20rpx; margin: 20rpx 0; background: #eaf2ef; border-radius: 16rpx; color: #315f53; }
+.pending-order .secondary-btn { width: auto; min-width: 220rpx; padding: 0 20rpx; margin: 0 0 0 auto; }
