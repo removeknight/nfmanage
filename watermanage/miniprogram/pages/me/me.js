@@ -1,11 +1,13 @@
 const { readingPage } = require('../../utils/reading')
 const { request, formatDate, saveCustomer } = require('../../utils/api')
 const { startPolling, stopPolling, syncCoupons, markCouponsRead } = require('../../utils/polling')
+const { openLegal, contactMerchant } = require('../../utils/legal')
 readingPage({
-  data: { customer: null, avatarText: '水', coupons: [], displayedCoupons: [], activeStatus: '可使用', statuses: ['可使用', '已使用', '已过期'], availableCount: 0, loading: false },
+  data: { customer: null, avatarText: '水', coupons: [], displayedCoupons: [], activeStatus: '可使用', statuses: ['可使用', '已使用', '已过期'], availableCount: 0, loading: false, contactPhone: '13324205796' },
   onShow() {
     this._readCouponsOnEntry = true
     markCouponsRead()
+    this.loadContact()
     startPolling(this, this.load)
   },
   onTabItemTap() { markCouponsRead() },
@@ -47,6 +49,12 @@ readingPage({
   selectStatus(event) { this.setData({ activeStatus: event.currentTarget.dataset.status }); this.filterCoupons() },
   filterCoupons() { this.setData({ displayedCoupons: this.data.coupons.filter(coupon => coupon.status === this.data.activeStatus) }) },
   goProfile() { wx.navigateTo({ url: '/pages/profile/profile' }) },
+  async loadContact() {
+    try { const legal = await request('/api/mini/legal'); this.setData({ contactPhone: legal.contact_phone }) } catch (_) {}
+  },
+  readPrivacy() { openLegal('privacy') },
+  readTerms() { openLegal('terms') },
+  contact() { contactMerchant(this.data.contactPhone) },
   goReading() { wx.navigateTo({ url: '/pages/reading/reading' }) },
   goOrders() {
     if (!getApp().globalData.miniToken) return this.goProfile()

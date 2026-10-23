@@ -27,6 +27,7 @@ const navigation = [
   ["电脑订单", Monitor],
   ["小程序订单", ClipboardList],
   ["优惠券管理", Ticket],
+  ["隐私与联系", ScrollText],
   ["配送订单", Truck],
   ["操作日志", ScrollText],
   ["销售明细", BarChart3],

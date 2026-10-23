@@ -18,6 +18,7 @@ from ..services.audit import write_log
 from ..services.auth import identity_profile, issue_session, mini_customer, require_manager
 from ..services.coupons import coupon_info, coupon_settings, grant_welcome, iso_utc, utc_now
 from ..services.mini_orders import ACTIVE_ORDER_STATUSES, cancel_sale, record_sale
+from ..services.privacy import agreement_state, legal_info, record_acceptance, validate_acceptance
 from ..settings import settings
 
 router = APIRouter(prefix="/api/mini", tags=["小程序与商家"])
@@ -102,6 +103,7 @@ def auth_config():
 
 @router.post("/bind")
 def bind(data: MiniBindIn, db: Session = Depends(get_db)):
+    validate_acceptance(db, data)
     mode = settings.mini_auth_mode.strip().lower()
     if data.auth_mode and data.auth_mode != mode:
         raise HTTPException(409, "小程序与服务器登录模式不一致，请联系管理员更新配置")
@@ -133,12 +135,18 @@ def bind(data: MiniBindIn, db: Session = Depends(get_db)):
         db.flush()
     else:
         customer.name, customer.phone, customer.address = data.name.strip(), data.phone.strip(), data.address.strip()
+    record_acceptance(db, customer, data, "bind")
     grant_welcome(db, customer)
     token = issue_session(db, customer)
     customer.mini_token_hash = hashlib.sha256(token.encode()).hexdigest()
     db.commit()
     logger.info("mini_bind_success provider=%s customer_id=%s", mode, customer.id)
     return {"token": token, "auth_mode": mode, "device_key": device_key, "customer": _profile(customer, db)}
+
+
+@router.get("/legal")
+def public_legal_info(db: Session = Depends(get_db)):
+    return legal_info(db)
 
 
 @router.get("/me")
@@ -161,8 +169,11 @@ def mock_device(authorization: str | None = Header(default=None), db: Session = 
 @router.patch("/me")
 def update_profile(data: MiniProfileIn, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     customer = _customer(authorization, db)
+    customer = db.scalar(select(Customer).where(Customer.id == customer.id).with_for_update()
+                         .execution_options(populate_existing=True))
     if not data.name.strip() or not data.phone.strip():
         raise HTTPException(400, "请填写称呼和联系电话")
+    record_acceptance(db, customer, data, "profile")
     customer.name, customer.phone, customer.address = data.name.strip(), data.phone.strip(), data.address.strip()
     db.commit()
     return _profile(customer, db)
@@ -189,9 +200,13 @@ def catalog(db: Session = Depends(get_db)):
 @router.post("/orders")
 def place_order(data: MiniOrderIn, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     customer = _customer(authorization, db)
+    if agreement_state(db, customer)["needs_agreement"]:
+        raise HTTPException(428, "请先在“我的 → 修改资料”中阅读并确认当前协议，再继续下单")
     # Persist fulfillment for future delivery support; only pickup is open now.
     if data.fulfillment != "pickup":
         raise HTTPException(400, "小程序暂仅支持到店提货，送货上门尚未开放")
+    if data.address.strip() and (not customer.address_consent_at or data.address.strip() != customer.address):
+        raise HTTPException(400, "家庭地址请在“我的 → 修改资料”中自愿填写并单独确认保存")
     if data.fulfillment == "delivery" and not data.address.strip():
         raise HTTPException(400, "选择送货上门时请填写配送地址")
     quantities = {}
@@ -229,7 +244,7 @@ def place_order(data: MiniOrderIn, authorization: str | None = Header(default=No
                 candidate = MiniOrder(order_no=f"NF{datetime.now():%Y%m%d%H%M%S}{secrets.token_hex(3).upper()}",
                     customer_id=customer.id, source="mini", fulfillment=data.fulfillment,
                     status="待配送" if data.fulfillment == "delivery" else "待提货", original_total=total, discount_amount=discount,
-                    total=total-discount, address=data.address.strip(), note=data.note.strip(),
+                    total=total-discount, address="", note=data.note.strip(),
                     coupon_id=coupon.id if coupon else None, coupon_usage_type=coupon.usage_type if coupon else None,
                     confirmed_at=utc_now(db), pickup_code=str(secrets.randbelow(900000)+100000))
                 db.add(candidate)
@@ -243,8 +258,6 @@ def place_order(data: MiniOrderIn, authorization: str | None = Header(default=No
         raise HTTPException(503, "提货码生成繁忙，请重试")
     if coupon:
         coupon.used_order_id, coupon.used_at = order.id, utc_now(db)
-    if data.address.strip():
-        customer.address = data.address.strip()
     for product, quantity, subtotal in lines:
         order.items.append(MiniOrderItem(product_id=product.id, product_name=product.name, brand=product.brand,
                           category=product.category, capacity=product.capacity, quantity=quantity,

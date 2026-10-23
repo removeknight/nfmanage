@@ -91,3 +91,9 @@
 .product-upload-status { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line, #e3eae5); border-radius: 10px; }
 .product-upload-status progress { width: 100%; accent-color: #356e60; }
 .product-upload-status button { justify-self: start; }
+.privacy-operator { flex: 1 1 300px; min-width: 0; }
+.privacy-preview-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+.privacy-document { max-height: 65vh; overflow: auto; overflow-wrap: anywhere; line-height: 1.85; }
+.privacy-document h3 { font-size: 16px; margin: 20px 0 8px; }
+.privacy-document p { margin: 0; white-space: pre-wrap; }
+.privacy-admin .row-action { margin: 4px 12px 4px 0; }

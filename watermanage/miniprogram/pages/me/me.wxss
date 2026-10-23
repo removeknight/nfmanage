@@ -19,3 +19,5 @@ page { background: #f6f7f5; color: #24342f; }
 .coupon-value { max-width: 100%; overflow-wrap: anywhere; color: #a64e32; font-size: 1.375rem; font-weight: 700; }.coupon-value text { margin-right: 4rpx; font-size: 1rem; }
 .coupon-info { flex: 1 1 240rpx; min-width: 0; overflow-wrap: anywhere; }.coupon-name { font-size: 1.125rem; font-weight: 600; }.coupon-rule,.coupon-date { margin-top: 9rpx; color: #56685f; font-size: .9375rem; }.use-coupon { display: flex; align-items: center; justify-content: center; min-height: 44px; max-width: 100%; padding: 12rpx 20rpx; border-radius: 12rpx; background: #edf4ef; color: #356e60; font-size: 1rem; }.coupon-state { color: #56685f; font-size: .9375rem; }.inactive { background: #f0f3ef; }
 .address-card { overflow-wrap: anywhere; }
+.legal-links { display: flex; flex-wrap: wrap; gap: 12rpx 32rpx; margin-top: 18rpx; color: #356e60; font-size: 1rem; }
+.legal-links text { display: flex; align-items: center; min-height: 44px; }

@@ -16,6 +16,7 @@ import PurchasePage from "./features/purchases/PurchasePage";
 import MiniOrderPage from "./features/orders/MiniOrderPage";
 import ComputerOrderPage from "./features/orders/ComputerOrderPage";
 import CouponPage from "./features/coupons/CouponPage";
+import PrivacyPage from "./features/privacy/PrivacyPage";
 import { useAutoRefresh } from "./utils/useAutoRefresh";
 
 const initialData = {
@@ -262,6 +263,7 @@ function AdminApp({ account, onLogout }) {
     ),
     电脑订单: <ComputerOrderPage orders={data.computerOrders} openModal={openModal} />,
     优惠券管理: <CouponPage />,
+    隐私与联系: <PrivacyPage />,
     操作日志: (
       <LogPage
         logs={data.logs}

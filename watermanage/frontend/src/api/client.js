@@ -68,6 +68,10 @@ function uploadProductImage(id, file, { signal, onProgress } = {}) {
 const send = (path, body, method = "POST") =>
   request(path, { method, body: JSON.stringify(body) });
 export const api = {
+  privacySettings: () => request('/api/privacy/settings'),
+  savePrivacySettings: body => send('/api/privacy/settings', body, 'PUT'),
+  legalConsents: () => request('/api/privacy/consents'),
+  legalDocument: (kind, version) => request(`/api/privacy/documents/${encodeURIComponent(kind)}/${encodeURIComponent(version)}`),
   login: (code) => send("/api/access/web-login", { code }),
   me: () => request("/api/access/me"),
   logout: () => send("/api/access/logout", {}),

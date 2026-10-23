@@ -1,0 +1,9 @@
+<page-meta root-font-size="{{readingRootFont}}px"/>
+<view class="legal-page {{readingLayoutClass}}">
+  <view wx:if="{{loading}}" class="hint">正在加载…</view>
+  <view wx:if="{{error}}" class="hint">{{error}}<button class="contact-button" bindtap="load">重新加载</button></view>
+  <block wx:if="{{document}}"><view class="title">{{document.title}}</view><view class="version">版本：{{document.version}}</view>
+    <view wx:for="{{document.sections}}" wx:key="heading" class="section"><view class="heading">{{item.heading}}</view><text class="body" user-select="{{true}}">{{item.text}}</text></view>
+  </block>
+  <button class="contact-button" bindtap="contact">联系商家 · {{phone}}</button>
+</view>

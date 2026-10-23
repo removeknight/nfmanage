@@ -45,7 +45,6 @@
     <view class="coupon-rule-tip">大桶水券仅抵扣“大桶水”品类；每单限用一张</view>
     <view class="checkout-discount">优惠 ¥{{discountTotal}}<text>应付 ¥{{payableTotal}}</text></view>
     <view class="coupon-rule-tip">交付方式：到店提货，下单后凭核销码领取</view>
-    <textarea class="field address-field" placeholder="联系地址（选填）" data-field="checkoutAddress" bindinput="updateField" value="{{checkoutAddress}}" />
     <input class="field note-field" placeholder="备注（选填）" data-field="orderNote" bindinput="updateField" value="{{orderNote}}" />
     <view class="checkout-actions"><button class="secondary-btn" disabled="{{submitting}}" bindtap="cancelCheckout">再看看</button><button class="primary-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="placeOrder">提交订单</button></view>
   </view></view>

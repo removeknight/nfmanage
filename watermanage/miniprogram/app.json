@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/me/me",
     "pages/profile/profile",
+    "pages/legal/legal",
     "pages/reading/reading",
     "pages/orders/orders",
     "pages/logs/logs",

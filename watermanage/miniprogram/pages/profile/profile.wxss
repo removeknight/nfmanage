@@ -11,3 +11,13 @@ page { background: #f6f7f5; color: #24342f; }
 .save-btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 2.75rem; height: auto; padding: .75rem 24rpx; margin-top: 30rpx; border-radius: 16rpx; background: #356e60; color: #fff; font-size: 1.125rem; line-height: 1.4; }
 .save-btn::after { border: none; }
 .test-hint { margin-top: 20rpx; color: #56685f; font-size: 0.9375rem; text-align: center; }
+.privacy-summary { margin-bottom: 26rpx; padding: 24rpx; border-radius: 16rpx; background: #eaf2ee; color: #435d51; font-size: 1rem; line-height: 1.65; }
+.address-hint { margin-top: 18rpx; color: #56685f; font-size: .9375rem; line-height: 1.65; }
+.consent-row { display: flex; align-items: flex-start; gap: 14rpx; min-height: 44px; padding: 18rpx 0; font-size: 1rem; line-height: 1.6; }
+.consent-row checkbox { flex: none; margin-top: 2rpx; }
+.consent-row text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.agreement-box { margin-top: 18rpx; }
+.agreement-links { display: flex; flex-wrap: wrap; gap: 8rpx 16rpx; color: #356e60; font-size: 1rem; }
+.agreement-links text, .retry-link { display: flex; align-items: center; min-height: 44px; }
+.legal-error { color: #a34732; font-size: 1rem; margin-top: 16rpx; }
+.retry-link { color: #356e60; }

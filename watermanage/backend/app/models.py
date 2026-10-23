@@ -37,6 +37,10 @@ class Customer(Base):
     __table_args__ = (UniqueConstraint("source", "auth_app_id", "wechat_openid", name="uq_customer_app_openid"),)
     mini_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     welcome_coupon_granted: Mapped[bool] = mapped_column(Boolean, default=False)
+    privacy_version: Mapped[str] = mapped_column(String(64), default="")
+    terms_version: Mapped[str] = mapped_column(String(64), default="")
+    agreement_accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    address_consent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 class Transaction(Base):
@@ -189,3 +193,32 @@ class MerchantCode(Base):
 class MerchantControl(Base):
     __tablename__ = "merchant_control"
     id: Mapped[int] = mapped_column(primary_key=True)
+
+
+class PrivacySetting(Base):
+    __tablename__ = "privacy_settings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    operator_name: Mapped[str] = mapped_column(String(120), default="农丰水站")
+    contact_phone: Mapped[str] = mapped_column(String(40), default="13324205796")
+
+
+class LegalDocument(Base):
+    __tablename__ = "legal_documents"
+    __table_args__ = (UniqueConstraint("kind", "version", name="uq_legal_document_version"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    version: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(80))
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class LegalConsent(Base):
+    __tablename__ = "legal_consents"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    privacy_version: Mapped[str] = mapped_column(String(64))
+    terms_version: Mapped[str] = mapped_column(String(64))
+    address_allowed: Mapped[bool] = mapped_column(Boolean)
+    source: Mapped[str] = mapped_column(String(20))
+    accepted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

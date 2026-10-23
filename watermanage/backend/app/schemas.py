@@ -52,7 +52,14 @@ class StatusIn(BaseModel):
     operator: str = "管理员"
 
 
-class MiniBindIn(BaseModel):
+class LegalAcceptanceIn(BaseModel):
+    accepted: bool = False
+    privacy_version: str = Field(default="", max_length=64)
+    terms_version: str = Field(default="", max_length=64)
+    address_allowed: bool = False
+
+
+class MiniBindIn(LegalAcceptanceIn):
     model_config = {"str_strip_whitespace": True}
     code: str | None = None
     app_id: str | None = Field(default=None, max_length=80)
@@ -77,11 +84,17 @@ class MiniOrderIn(BaseModel):
     coupon_id: int | None = Field(default=None, gt=0)
 
 
-class MiniProfileIn(BaseModel):
+class MiniProfileIn(LegalAcceptanceIn):
     model_config = {"str_strip_whitespace": True}
     name: str = Field(min_length=1, max_length=120)
     phone: str = Field(min_length=1, max_length=40)
     address: str = Field(default="", max_length=300)
+
+
+class PrivacySettingIn(BaseModel):
+    model_config = {"str_strip_whitespace": True}
+    operator_name: str = Field(min_length=1, max_length=120)
+    contact_phone: str = Field(min_length=5, max_length=40, pattern=r"^[0-9+()\- ]+$")
 
 
 class CouponSettingIn(BaseModel):

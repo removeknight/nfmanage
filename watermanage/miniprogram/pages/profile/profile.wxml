@@ -2,11 +2,14 @@
 <view class="profile-page {{readingLayoutClass}}">
   <view class="title">{{editing ? '完善个人资料' : '欢迎来到农丰水站'}}</view>
   <view class="subtitle">{{editing ? '完善您的联系信息' : '绑定当前微信账号，查看订单和优惠券'}}</view>
+  <view class="privacy-summary">浏览商品无需绑定。我们保存微信身份标识及您填写的称呼、联系电话，用于账号、订单联系和到店提货。家庭地址自愿填写，另行确认保存。</view>
   <view class="profile-form">
     <view class="form-group"><view class="label">怎么称呼您</view><input class="form-input" value="{{name}}" placeholder="请填写称呼" maxlength="120" data-field="name" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /></view>
     <view class="form-group"><view class="label">联系电话</view><input class="form-input" value="{{phone}}" placeholder="方便提货时联系" type="number" maxlength="20" data-field="phone" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /></view>
-    <view class="form-group"><view class="label">常用联系地址（选填）</view><textarea class="form-address" value="{{address}}" placeholder="小区、楼栋、门牌号" maxlength="300" data-field="address" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /></view>
+    <view class="form-group"><view class="label">家庭／常用地址（选填）</view><textarea class="form-address" value="{{address}}" placeholder="小区、楼栋、门牌号，可暂不填写" maxlength="300" data-field="address" bindinput="updateField" adjust-position="{{true}}" cursor-spacing="40" /><view class="address-hint">用于后续配送服务开放后的地址预填准备；当前仅到店提货，不填写也能正常下单。可随时清空并保存，撤回地址保存同意。</view><checkbox-group bindchange="changeAddressConsent"><label class="consent-row"><checkbox value="address" checked="{{addressAllowed}}" color="#356e60"/><text>我自愿同意保存填写的地址，用于后续配送准备（选填）</text></label></checkbox-group></view>
   </view>
-  <button class="save-btn" loading="{{saving}}" disabled="{{saving}}" bindtap="save">{{editing ? '保存资料' : (mock ? '完成绑定' : '微信登录并绑定')}}</button>
+  <view class="agreement-box"><checkbox-group bindchange="changeAgreement"><label class="consent-row"><checkbox value="accepted" checked="{{accepted}}" color="#356e60"/><text>我已阅读并同意以下隐私指引和服务协议</text></label></checkbox-group><view class="agreement-links"><text bindtap="readPrivacy">《隐私保护指引》</text><text bindtap="readTerms">《用户服务协议》</text></view></view>
+  <view wx:if="{{legalError}}" class="legal-error">{{legalError}}<view class="retry-link" bindtap="loadLegal">重新加载协议</view></view>
+  <button class="save-btn" loading="{{saving}}" disabled="{{saving || !legalReady}}" bindtap="save">{{editing ? '保存资料' : (mock ? '完成绑定' : '微信登录并绑定')}}</button>
   <view wx:if="{{mock && !editing}}" class="test-hint">当前为测试绑定模式</view>
 </view>

@@ -10,6 +10,7 @@ from ..database import get_db
 from ..models import AuthSession, Customer, MerchantMember
 from ..settings import settings
 from .coupons import utc_now
+from .privacy import agreement_state
 
 ROLE_LABELS = {"customer": "普通客户", "staff": "店员", "deputy": "副店长", "owner": "店主"}
 MANAGER_ROLES = {"owner", "deputy"}
@@ -35,7 +36,7 @@ def identity_profile(db, customer):
     return {"id": customer.id, "name": customer.name, "phone": customer.phone, "address": customer.address,
             "source": customer.source, "source_label": "小程序" if customer.source == "mini" else "线下电脑录入",
             "role": role, "role_label": ROLE_LABELS[role], "is_merchant": role != "customer",
-            "auth_provider": customer.auth_provider}
+            "auth_provider": customer.auth_provider, **agreement_state(db, customer)}
 
 
 def issue_session(db, customer, kind="mini"):
