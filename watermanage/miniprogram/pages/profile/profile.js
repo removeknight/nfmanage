@@ -3,28 +3,23 @@ const { request, saveCustomer } = require('../../utils/api')
 const { openLegal } = require('../../utils/legal')
 readingPage({
   data: { name: '', phone: '', address: '', editing: false, saving: false, mock: false,
-    legalReady: false, legalError: '', accepted: false, addressAllowed: false },
+    legalReady: false, legalError: '', accepted: false },
   onLoad() {
     const app = getApp(), customer = app.globalData.customer
     this.setData({ editing: !!customer, mock: app.globalData.miniAuthMode === 'mock',
-      name: customer ? customer.name : '', phone: customer ? customer.phone : '', address: customer ? customer.address : '',
-      addressAllowed: !!(customer && customer.address_allowed) })
+      name: customer ? customer.name : '', phone: customer ? customer.phone : '', address: customer ? customer.address : '' })
   },
-  onShow() { this.loadLegal() },
+  onShow() { if (!this.data.editing) this.loadLegal() },
   async loadLegal() {
     this.setData({ legalError: '' })
     try {
       const legal = await request('/api/mini/legal')
-      const customer = getApp().globalData.customer
-      const current = customer && customer.privacy_version === legal.privacy.version && customer.terms_version === legal.terms.version
       const sameVersion = this._legal && this._legal.privacy.version === legal.privacy.version && this._legal.terms.version === legal.terms.version
-      this.setData({ legalReady: true, accepted: sameVersion ? this.data.accepted : !!current,
-        addressAllowed: sameVersion ? this.data.addressAllowed : !!(current && customer.address_allowed) })
+      this.setData({ legalReady: true, accepted: sameVersion ? this.data.accepted : false })
       this._legal = legal
     } catch (error) { this.setData({ legalReady: false, legalError: error.message }) }
   },
   changeAgreement(event) { this.setData({ accepted: event.detail.value.includes('accepted') }) },
-  changeAddressConsent(event) { this.setData({ addressAllowed: event.detail.value.includes('address') }) },
   readPrivacy() { openLegal('privacy') },
   readTerms() { openLegal('terms') },
   updateField(event) { this.setData({ [event.currentTarget.dataset.field]: event.detail.value }) },
@@ -32,11 +27,11 @@ readingPage({
     if (this.data.saving) return
     const name = this.data.name.trim(), phone = this.data.phone.trim(), address = this.data.address.trim()
     if (!name || !phone) return wx.showToast({ title: '请填写称呼和联系电话', icon: 'none' })
-    if (!this.data.legalReady || !this._legal) return wx.showToast({ title: '请先加载协议内容', icon: 'none' })
-    if (!this.data.accepted) return wx.showToast({ title: '请阅读并勾选确认隐私指引和服务协议', icon: 'none' })
-    if (address && !this.data.addressAllowed) return wx.showModal({ title: '地址为选填信息', content: '若希望保存家庭地址，请单独勾选同意；也可清空地址后继续，不影响下单提货。', showCancel: false, confirmColor: '#356e60' })
-    const details = { name, phone, address, accepted: true, privacy_version: this._legal.privacy.version,
-      terms_version: this._legal.terms.version, address_allowed: !!(address && this.data.addressAllowed) }
+    if (!this.data.editing && (!this.data.legalReady || !this._legal)) return wx.showToast({ title: '请先加载协议内容', icon: 'none' })
+    if (!this.data.editing && !this.data.accepted) return wx.showToast({ title: '请阅读并勾选确认隐私指引和服务协议', icon: 'none' })
+    const details = { name, phone, address }
+    if (!this.data.editing) Object.assign(details, { accepted: true, privacy_version: this._legal.privacy.version,
+      terms_version: this._legal.terms.version })
     this.setData({ saving: true })
     try {
       if (this.data.editing) saveCustomer(await request('/api/mini/me', { method: 'PATCH', data: details }))
@@ -63,9 +58,12 @@ readingPage({
       if (getCurrentPages().length > 1) wx.navigateBack()
       else wx.switchTab({ url: '/pages/me/me' })
     } catch (error) {
-      if (error.status === 409) { this.setData({ accepted: false, legalReady: false }); this._legal = null; await this.loadLegal() }
-      if (!getApp().globalData.miniToken) this.setData({ editing: false })
-      wx.showModal({ title: '绑定未完成', content: error.message, showCancel: false, confirmColor: '#356e60' })
+      if (!this.data.editing && error.status === 409) { this.setData({ accepted: false, legalReady: false }); this._legal = null; await this.loadLegal() }
+      if (!getApp().globalData.miniToken && this.data.editing) {
+        this.setData({ editing: false, accepted: false })
+        await this.loadLegal()
+      }
+      wx.showModal({ title: this.data.editing ? '资料未保存' : '绑定未完成', content: error.message, showCancel: false, confirmColor: '#356e60' })
     }
     finally { this.setData({ saving: false }) }
   },

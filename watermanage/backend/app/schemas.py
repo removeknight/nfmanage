@@ -56,7 +56,6 @@ class LegalAcceptanceIn(BaseModel):
     accepted: bool = False
     privacy_version: str = Field(default="", max_length=64)
     terms_version: str = Field(default="", max_length=64)
-    address_allowed: bool = False
 
 
 class MiniBindIn(LegalAcceptanceIn):
@@ -84,7 +83,7 @@ class MiniOrderIn(BaseModel):
     coupon_id: int | None = Field(default=None, gt=0)
 
 
-class MiniProfileIn(LegalAcceptanceIn):
+class MiniProfileIn(BaseModel):
     model_config = {"str_strip_whitespace": True}
     name: str = Field(min_length=1, max_length=120)
     phone: str = Field(min_length=1, max_length=40)

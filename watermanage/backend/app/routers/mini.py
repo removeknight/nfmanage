@@ -18,7 +18,7 @@ from ..services.audit import write_log
 from ..services.auth import identity_profile, issue_session, mini_customer, require_manager
 from ..services.coupons import coupon_info, coupon_settings, grant_welcome, iso_utc, utc_now
 from ..services.mini_orders import ACTIVE_ORDER_STATUSES, cancel_sale, record_sale
-from ..services.privacy import agreement_state, legal_info, record_acceptance, validate_acceptance
+from ..services.privacy import legal_info, record_acceptance, record_address_choice, validate_acceptance
 from ..settings import settings
 
 router = APIRouter(prefix="/api/mini", tags=["小程序与商家"])
@@ -173,7 +173,7 @@ def update_profile(data: MiniProfileIn, authorization: str | None = Header(defau
                          .execution_options(populate_existing=True))
     if not data.name.strip() or not data.phone.strip():
         raise HTTPException(400, "请填写称呼和联系电话")
-    record_acceptance(db, customer, data, "profile")
+    record_address_choice(db, customer, data)
     customer.name, customer.phone, customer.address = data.name.strip(), data.phone.strip(), data.address.strip()
     db.commit()
     return _profile(customer, db)
@@ -200,13 +200,11 @@ def catalog(db: Session = Depends(get_db)):
 @router.post("/orders")
 def place_order(data: MiniOrderIn, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     customer = _customer(authorization, db)
-    if agreement_state(db, customer)["needs_agreement"]:
-        raise HTTPException(428, "请先在“我的 → 修改资料”中阅读并确认当前协议，再继续下单")
     # Persist fulfillment for future delivery support; only pickup is open now.
     if data.fulfillment != "pickup":
         raise HTTPException(400, "小程序暂仅支持到店提货，送货上门尚未开放")
     if data.address.strip() and (not customer.address_consent_at or data.address.strip() != customer.address):
-        raise HTTPException(400, "家庭地址请在“我的 → 修改资料”中自愿填写并单独确认保存")
+        raise HTTPException(400, "家庭地址请在“我的 → 修改资料”中填写并保存，到店提货无需提交地址")
     if data.fulfillment == "delivery" and not data.address.strip():
         raise HTTPException(400, "选择送货上门时请填写配送地址")
     quantities = {}

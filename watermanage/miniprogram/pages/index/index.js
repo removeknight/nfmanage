@@ -96,11 +96,6 @@ readingPage({
       const [coupons, customer] = await Promise.all([request('/api/mini/coupons'), request('/api/mini/me')])
       if (!this._pollVisible) return
       saveCustomer(customer)
-      if (customer.needs_agreement) {
-        return wx.showModal({ title: '请先阅读并确认协议', content: '在个人资料页确认隐私保护指引和用户服务协议后，即可继续结算。家庭地址可不填写。', confirmText: '前往确认', confirmColor: '#356e60', success: result => {
-          if (result.confirm) wx.navigateTo({ url: '/pages/profile/profile' })
-        } })
-      }
       this.setData({ showCheckout: true, customer })
       this.prepareCoupons(coupons, true)
     } catch (error) { wx.showToast({ title: error.message, icon: 'none' }) }
@@ -123,15 +118,7 @@ readingPage({
       this.setData({ cart: {}, checkoutLines: [], cartCount: 0, cartTotal: '0.00', showCheckout: false, orderNote: '', couponIndex: 0, selectedCouponId: null })
       wx.showModal({ title: '下单成功', content: `提货码 ${order.pickup_code}\n应付 ¥${Number(order.total).toFixed(2)}\n请凭提货码到店提货，可在“我的订单”中查看。`, confirmText: '查看订单', cancelText: '继续选购', success: result => { if (result.confirm) wx.navigateTo({ url: '/pages/orders/orders' }) } })
       this.loadProducts()
-    } catch (error) {
-      if (error.status === 428) {
-        this.setData({ showCheckout: false })
-        wx.showModal({ title: '协议需要重新确认', content: error.message, confirmText: '前往确认', confirmColor: '#356e60', success: result => {
-          if (result.confirm) wx.navigateTo({ url: '/pages/profile/profile' })
-        } })
-      } else wx.showToast({ title: error.message, icon: 'none' })
-      this.loadProducts()
-    }
+    } catch (error) { wx.showToast({ title: error.message, icon: 'none' }); this.loadProducts() }
     finally { this.setData({ submitting: false }) }
   },
   goMe() { wx.switchTab({ url: '/pages/me/me' }) },
